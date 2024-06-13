@@ -22,7 +22,7 @@ latest_data = {}
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v2.0.1")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v3.0.0")
 
 # Función para obtener el precio actual de BNB/USDT desde CoinGecko
 def get_bnb_usdt_price() -> float:
@@ -43,10 +43,10 @@ def calculate_indicators(data):
     df = pd.DataFrame(data, columns=['price'])
 
     # Calcula la media móvil
-    short_window = 10
-    long_window = 50
-    df['short_ma'] = ta.trend.sma_indicator(df['price'], window=short_window)
-    df['long_ma'] = ta.trend.sma_indicator(df['price'], window=long_window)
+    # short_window = 10
+    # long_window = 50
+    # df['short_ma'] = ta.trend.sma_indicator(df['price'], window=short_window)
+    # df['long_ma'] = ta.trend.sma_indicator(df['price'], window=long_window)
 
     # Calcula las Bandas de Bollinger
     bollinger_window = 20
@@ -96,21 +96,21 @@ def get_price_and_send(context: CallbackContext) -> None:
             latest_data = df.iloc[-1]
             if compra:
                 # Estrategia de compra
-                if latest_data['short_ma'] >= latest_data['long_ma'] and price <= latest_data['lower_band']:
+                if price <= latest_data['lower_band']:
                     signal_message = f"Momento de Compra a precio: {price:.2f} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = False
-                elif latest_data['short_ma'] <= latest_data['long_ma'] and price >= latest_data['upper_band']:
+                elif price >= latest_data['upper_band']:
                     signal_message = f"Momento de Venta a precio: {price:.2f} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = True
             else:
                 # Estrategia de venta
-                if latest_data['short_ma'] >= latest_data['long_ma'] and price <= latest_data['lower_band']:
+                if price <= latest_data['lower_band']:
                     signal_message = f"Momento de Compra a precio: {price:.2f} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = False
-                elif latest_data['short_ma'] <= latest_data['long_ma'] and price >= latest_data['upper_band']:
+                elif price >= latest_data['upper_band']:
                     signal_message = f"Momento de Venta a precio: {price:.2f} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = True
@@ -134,34 +134,35 @@ def send_summary(update: Update, context: CallbackContext) -> None:
     global latest_data, price, compra
     try:
         summary_message = (
-            f"-short_ma: {latest_data['short_ma']:.2f},\n "
-            f"-long_ma: {latest_data['long_ma']:.2f},\n "
-            f"-price: {price:.2f},\n "
-            f"-lower_band: {latest_data['lower_band']:.2f},\n "
-            f"-upper_band: {latest_data['upper_band']:.2f}\n\n"
+            # f"-short_ma: {latest_data['short_ma']:.2f},\n "
+            # f"-long_ma: {latest_data['long_ma']:.2f},\n "
+            f"-upper_band: {latest_data['upper_band']:.2f}\n"
+            f"-price: {price:.2f}\n "
+            f"-lower_band: {latest_data['lower_band']:.2f}\n\n "
+
         )
 
         # Explicar las condiciones
         #if compra:
         summary_message += "Condiciones para Compra:\n"
-        summary_message += "- short_ma >= long_ma\n"
+        # summary_message += "- short_ma >= long_ma\n"
         summary_message += "- price <= lower_band\n\n"
-        if latest_data['short_ma'] >= latest_data['long_ma']:
-            summary_message += "Condición short_ma >= long_ma: Cumplida\n"
-        else:
-            summary_message += "Condición short_ma >= long_ma: No cumplida\n"
+        # if latest_data['short_ma'] >= latest_data['long_ma']:
+        #     summary_message += "Condición short_ma >= long_ma: Cumplida\n"
+        # else:
+        #     summary_message += "Condición short_ma >= long_ma: No cumplida\n"
         if price <= latest_data['lower_band']:
             summary_message += "Condición price <= lower_band: Cumplida\n"
         else:
             summary_message += "Condición price <= lower_band: No cumplida\n"
         #else:
         summary_message += "\nCondiciones para Venta:\n"
-        summary_message += "- short_ma < long_ma\n"
+        # summary_message += "- short_ma < long_ma\n"
         summary_message += "- price > upper_band\n\n"
-        if latest_data['short_ma'] <= latest_data['long_ma']:
-            summary_message += "Condición short_ma <= long_ma: Cumplida\n"
-        else:
-            summary_message += "Condición short_ma <= long_ma: No cumplida\n"
+        # if latest_data['short_ma'] <= latest_data['long_ma']:
+        #     summary_message += "Condición short_ma <= long_ma: Cumplida\n"
+        # else:
+        #     summary_message += "Condición short_ma <= long_ma: No cumplida\n"
         if price >= latest_data['upper_band']:
             summary_message += "Condición price >= upper_band: Cumplida\n"
         else:
@@ -188,7 +189,7 @@ def main() -> None:
             job_queue.run_repeating(get_price_and_send, interval=60, first=0)
 
             # Agregar un trabajo recurrente que se ejecuta cada 10 minutos para enviar un mensaje "Sigo vivo"
-            job_queue.run_repeating(send_alive_message, interval=60, first=0)
+            job_queue.run_repeating(send_alive_message, interval=600, first=0)
 
             # Añadir manejador de comando para /resumen
             updater.dispatcher.add_handler(CommandHandler('resumen', send_summary))
