@@ -21,10 +21,11 @@ numCompras=0
 numVentas=0
 compra = True
 latest_data = {}
+strOrdenes=f"Ordenes realizadas: \n"
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v3.0.1")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v3.1.0")
 
 # Función para obtener el precio actual de BNB/USDT desde CoinGecko
 def get_bnb_usdt_price() -> float:
@@ -83,7 +84,7 @@ def get_last_50_prices():
 
 # Función que obtiene el precio actual y lo envía al chat
 def get_price_and_send(context: CallbackContext) -> None:
-    global compra, price, latest_data,numCompras,numVentas
+    global compra, price, latest_data,numCompras,numVentas,strOrdenes
     try:
         # Obtener el precio actual
         price = get_bnb_usdt_price()
@@ -99,48 +100,40 @@ def get_price_and_send(context: CallbackContext) -> None:
             if compra:
                 # Estrategia de compra
                 if price <= latest_data['lower_band']:
-                    signal_message = f"Momento de Compra a precio: {price:.2f} USDT"
+                    signal_message = f"Momento de Compra a precio: {price} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = False
                     numCompras=numCompras+1
-                elif price >= latest_data['upper_band']:
-                    signal_message = f"Momento de Venta a precio: {price:.2f} USDT"
-                    context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                    compra = True
-                    numVentas=numVentas+1
+                    strOrdenes=+strOrdenes+f"Compra a precio: {price}\n"
+
             else:
                 # Estrategia de venta
-                if price <= latest_data['lower_band']:
-                    signal_message = f"Momento de Compra a precio: {price:.2f} USDT"
-                    context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                    compra = False
-                    numCompras = numCompras + 1
-                elif price >= latest_data['upper_band']:
-                    signal_message = f"Momento de Venta a precio: {price:.2f} USDT"
+                if price >= latest_data['upper_band']:
+                    signal_message = f"Momento de Venta a precio: {price} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = True
                     numVentas = numVentas + 1
+                    strOrdenes = +strOrdenes + f"    VENTA a precio: {price}\n"
     except Exception as e:
-        error_message = f"Error al obtener el precio: {str(e)}"
-        context.bot.send_message(chat_id=CHAT_ID, text=error_message)
-        print(error_message)  # Esto imprimirá el mensaje de error en la consola para más detalles
+        #error_message = f"Error al obtener el precio: {str(e)}"
+        #context.bot.send_message(chat_id=CHAT_ID, text=error_message)
+        #print(error_message)  # Esto imprimirá el mensaje de error en la consola para más detalles
+        pass
 
 # Función que envía un mensaje cada 10 minutos para indicar que el bot sigue vivo
 def send_alive_message(context: CallbackContext) -> None:
     global price
-    if compra:
-        signal_message = f"Esperando una compra... Precio: {price:.2f} USDT"
-        context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-    else:
-        signal_message = f"Esperando una venta... Precio: {price:.2f} USDT"
-        context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+    signal_message = f"Precio: {price} USDT"
+    context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
 
 def send_NumOrd_message(update: Update, context: CallbackContext) -> None:
-    global numCompras, numVentas
+    global numCompras, numVentas,strOrdenes
     try:
         signal_message = f"Compras: {numCompras} \nVentas: {numVentas}"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+
+        context.bot.send_message(chat_id=CHAT_ID, text=strOrdenes)
     except:
         pass
 
@@ -173,7 +166,7 @@ def send_summary(update: Update, context: CallbackContext) -> None:
         #else:
         summary_message += "\nCondiciones para Venta:\n"
         # summary_message += "- short_ma < long_ma\n"
-        summary_message += "- price > upper_band\n\n"
+        summary_message += "- price >= upper_band\n\n"
         # if latest_data['short_ma'] <= latest_data['long_ma']:
         #     summary_message += "Condición short_ma <= long_ma: Cumplida\n"
         # else:
