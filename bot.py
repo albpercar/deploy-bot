@@ -8,7 +8,8 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # Tu token de acceso de bot
-TOKEN = '7294424253:AAG6rjghmNpRsyMYTQWjogqEiRJDDjflloM'
+#TOKEN = '7294424253:AAG6rjghmNpRsyMYTQWjogqEiRJDDjflloM'
+TOKEN = '7338148224:AAEXnqui8026QPC2fUjzUM3-c53OhuH70fs'
 
 # ID del chat al que enviarás el precio
 CHAT_ID = '172259495'  # Tu chat ID
@@ -16,13 +17,14 @@ CHAT_ID = '172259495'  # Tu chat ID
 price = 0
 # Lista para almacenar los precios históricos
 price_history = []
-
+numCompras=0
+numVentas=0
 compra = True
 latest_data = {}
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v3.0.0")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v3.0.1")
 
 # Función para obtener el precio actual de BNB/USDT desde CoinGecko
 def get_bnb_usdt_price() -> float:
@@ -81,7 +83,7 @@ def get_last_50_prices():
 
 # Función que obtiene el precio actual y lo envía al chat
 def get_price_and_send(context: CallbackContext) -> None:
-    global compra, price, latest_data
+    global compra, price, latest_data,numCompras,numVentas
     try:
         # Obtener el precio actual
         price = get_bnb_usdt_price()
@@ -100,20 +102,24 @@ def get_price_and_send(context: CallbackContext) -> None:
                     signal_message = f"Momento de Compra a precio: {price:.2f} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = False
+                    numCompras=numCompras+1
                 elif price >= latest_data['upper_band']:
                     signal_message = f"Momento de Venta a precio: {price:.2f} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = True
+                    numVentas=numVentas+1
             else:
                 # Estrategia de venta
                 if price <= latest_data['lower_band']:
                     signal_message = f"Momento de Compra a precio: {price:.2f} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = False
+                    numCompras = numCompras + 1
                 elif price >= latest_data['upper_band']:
                     signal_message = f"Momento de Venta a precio: {price:.2f} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = True
+                    numVentas = numVentas + 1
     except Exception as e:
         error_message = f"Error al obtener el precio: {str(e)}"
         context.bot.send_message(chat_id=CHAT_ID, text=error_message)
@@ -128,6 +134,15 @@ def send_alive_message(context: CallbackContext) -> None:
     else:
         signal_message = f"Esperando una venta... Precio: {price:.2f} USDT"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+
+
+def send_NumOrd_message(update: Update, context: CallbackContext) -> None:
+    global numCompras, numVentas
+    try:
+        signal_message = f"Compras: {numCompras} \nVentas: {numVentas}"
+        context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+    except:
+        pass
 
 # Función para enviar un resumen al recibir el comando /resumen
 def send_summary(update: Update, context: CallbackContext) -> None:
@@ -189,10 +204,11 @@ def main() -> None:
             job_queue.run_repeating(get_price_and_send, interval=60, first=0)
 
             # Agregar un trabajo recurrente que se ejecuta cada 10 minutos para enviar un mensaje "Sigo vivo"
-            job_queue.run_repeating(send_alive_message, interval=600, first=0)
+            job_queue.run_repeating(send_alive_message, interval=60, first=0)
 
             # Añadir manejador de comando para /resumen
             updater.dispatcher.add_handler(CommandHandler('resumen', send_summary))
+            updater.dispatcher.add_handler(CommandHandler('ordenes', send_NumOrd_message))
 
             # Empezar el bot
             updater.start_polling()
