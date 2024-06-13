@@ -3,6 +3,8 @@ import pandas as pd
 import ta
 from telegram import Update
 from telegram.ext import Updater, CallbackContext, CommandHandler, JobQueue
+from flask import Flask
+import threading
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -19,6 +21,9 @@ price_history = []
 
 compra = True
 latest_data = {}
+
+# Iniciar Flask
+app = Flask(__name__)
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
@@ -142,7 +147,6 @@ def send_summary(update: Update, context: CallbackContext) -> None:
         )
 
         # Explicar las condiciones
-        #if compra:
         summary_message += "Condiciones para Compra:\n"
         summary_message += "- short_ma >= long_ma\n"
         summary_message += "- price <= lower_band\n\n"
@@ -154,7 +158,6 @@ def send_summary(update: Update, context: CallbackContext) -> None:
             summary_message += "Condición price <= lower_band: Cumplida\n"
         else:
             summary_message += "Condición price <= lower_band: No cumplida\n"
-        #else:
         summary_message += "\nCondiciones para Venta:\n"
         summary_message += "- short_ma < long_ma\n"
         summary_message += "- price > upper_band\n\n"
@@ -172,31 +175,25 @@ def send_summary(update: Update, context: CallbackContext) -> None:
         error_message = f"Error al generar el resumen: {str(e)}"
         update.message.reply_text(error_message)
 
-def main() -> None:
-    # Crear el updater y pasarlo a tu bot token
+# Iniciar el bot de Telegram en un hilo separado
+def start_telegram_bot():
     updater = Updater(TOKEN)
-
-    # Enviar mensaje de inicio
     send_startup_message(updater)
-
-    # Crear el JobQueue
     job_queue = updater.job_queue
-
-    # Agregar un trabajo recurrente que se ejecuta cada minuto para obtener el precio y enviarlo
     job_queue.run_repeating(get_price_and_send, interval=60, first=0)
-
-    # Agregar un trabajo recurrente que se ejecuta cada 10 minutos para enviar un mensaje "Sigo vivo"
-    job_queue.run_repeating(send_alive_message, interval=600, first=0)
-
-    # Añadir manejador de comando para /resumen
+    job_queue.run_repeating(send_alive_message, interval=60, first=0)
     updater.dispatcher.add_handler(CommandHandler('resumen', send_summary))
-
-    # Empezar el bot
     updater.start_polling()
-
-    # Ejecutar el bot hasta que presionemos Ctrl-C o el proceso reciba SIGINT,
-    # SIGTERM o SIGABRT.
     updater.idle()
 
+# Rutas de Flask
+@app.route('/')
+def home():
+    return "Bot de Telegram ejecutándose."
+
+# Iniciar el bot de Telegram en un hilo separado para no bloquear el servidor Flask
+threading.Thread(target=start_telegram_bot).start()
+
+# Ejecutar el servidor Flask
 if __name__ == '__main__':
-    main()
+    app.run(host='0.0.0.0', port=5000)
