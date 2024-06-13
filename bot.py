@@ -204,7 +204,7 @@ def main() -> None:
             job_queue.run_repeating(get_price_and_send, interval=60, first=0)
 
             # Agregar un trabajo recurrente que se ejecuta cada 10 minutos para enviar un mensaje "Sigo vivo"
-            job_queue.run_repeating(send_alive_message, interval=60, first=0)
+            job_queue.run_repeating(send_alive_message, interval=600, first=0)
 
             # Añadir manejador de comando para /resumen
             updater.dispatcher.add_handler(CommandHandler('resumen', send_summary))
