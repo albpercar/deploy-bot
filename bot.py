@@ -25,7 +25,7 @@ strOrdenes=f"Ordenes realizadas: \n"
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v3.1.0")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v3.2.0")
 
 # Función para obtener el precio actual de BNB/USDT desde CoinGecko
 def get_bnb_usdt_price() -> float:
@@ -99,21 +99,21 @@ def get_price_and_send(context: CallbackContext) -> None:
             latest_data = df.iloc[-1]
             if compra:
                 # Estrategia de compra
-                if price <= latest_data['lower_band']:
+                if price < latest_data['lower_band']:
                     signal_message = f"Momento de Compra a precio: {price} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = False
                     numCompras=numCompras+1
-                    strOrdenes=+strOrdenes+f"Compra a precio: {price}\n"
+                    strOrdenes=strOrdenes+f"Compra a precio: {price}\n"
 
             else:
                 # Estrategia de venta
-                if price >= latest_data['upper_band']:
+                if price > latest_data['upper_band']:
                     signal_message = f"Momento de Venta a precio: {price} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = True
                     numVentas = numVentas + 1
-                    strOrdenes = +strOrdenes + f"    VENTA a precio: {price}\n"
+                    strOrdenes = strOrdenes + f"    VENTA a precio: {price}\n"
     except Exception as e:
         #error_message = f"Error al obtener el precio: {str(e)}"
         #context.bot.send_message(chat_id=CHAT_ID, text=error_message)
@@ -130,10 +130,10 @@ def send_alive_message(context: CallbackContext) -> None:
 def send_NumOrd_message(update: Update, context: CallbackContext) -> None:
     global numCompras, numVentas,strOrdenes
     try:
-        signal_message = f"Compras: {numCompras} \nVentas: {numVentas}"
+        signal_message = f"Compras: {numCompras} \nVentas: {numVentas}\n"+strOrdenes
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
-        context.bot.send_message(chat_id=CHAT_ID, text=strOrdenes)
+        #context.bot.send_message(chat_id=CHAT_ID, text=strOrdenes)
     except:
         pass
 
@@ -144,9 +144,9 @@ def send_summary(update: Update, context: CallbackContext) -> None:
         summary_message = (
             # f"-short_ma: {latest_data['short_ma']:.2f},\n "
             # f"-long_ma: {latest_data['long_ma']:.2f},\n "
-            f"-upper_band: {latest_data['upper_band']:.2f}\n"
-            f"-price: {price:.2f}\n "
-            f"-lower_band: {latest_data['lower_band']:.2f}\n\n "
+            f"-upper_band: {latest_data['upper_band']}\n"
+            f"-price: {price}\n "
+            f"-lower_band: {latest_data['lower_band']}\n\n "
 
         )
 
@@ -159,10 +159,10 @@ def send_summary(update: Update, context: CallbackContext) -> None:
         #     summary_message += "Condición short_ma >= long_ma: Cumplida\n"
         # else:
         #     summary_message += "Condición short_ma >= long_ma: No cumplida\n"
-        if price <= latest_data['lower_band']:
-            summary_message += "Condición price <= lower_band: Cumplida\n"
-        else:
-            summary_message += "Condición price <= lower_band: No cumplida\n"
+        # if price <= latest_data['lower_band']:
+        #     summary_message += "Condición price <= lower_band: Cumplida\n"
+        # else:
+        #     summary_message += "Condición price <= lower_band: No cumplida\n"
         #else:
         summary_message += "\nCondiciones para Venta:\n"
         # summary_message += "- short_ma < long_ma\n"
@@ -171,10 +171,10 @@ def send_summary(update: Update, context: CallbackContext) -> None:
         #     summary_message += "Condición short_ma <= long_ma: Cumplida\n"
         # else:
         #     summary_message += "Condición short_ma <= long_ma: No cumplida\n"
-        if price >= latest_data['upper_band']:
-            summary_message += "Condición price >= upper_band: Cumplida\n"
-        else:
-            summary_message += "Condición price >= upper_band: No cumplida\n"
+        # if price >= latest_data['upper_band']:
+        #     summary_message += "Condición price >= upper_band: Cumplida\n"
+        # else:
+        #     summary_message += "Condición price >= upper_band: No cumplida\n"
 
         update.message.reply_text(summary_message)
     except Exception as e:
