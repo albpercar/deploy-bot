@@ -99,7 +99,7 @@ def get_price_and_send(context: CallbackContext) -> None:
             latest_data = df.iloc[-1]
             if compra:
                 # Estrategia de compra
-                if price < latest_data['lower_band']:
+                if float(price) < float(latest_data['lower_band']):
                     signal_message = f"Momento de Compra a precio: {price} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = False
@@ -108,7 +108,7 @@ def get_price_and_send(context: CallbackContext) -> None:
 
             else:
                 # Estrategia de venta
-                if price > latest_data['upper_band']:
+                if float(price) > float(latest_data['upper_band']):
                     signal_message = f"Momento de Venta a precio: {price} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = True
@@ -145,7 +145,7 @@ def send_summary(update: Update, context: CallbackContext) -> None:
             # f"-short_ma: {latest_data['short_ma']:.2f},\n "
             # f"-long_ma: {latest_data['long_ma']:.2f},\n "
             f"-upper_band: {latest_data['upper_band']}\n"
-            f"-price: {price}\n "
+            f"-price: {price}\n"
             f"-lower_band: {latest_data['lower_band']}\n\n "
 
         )
