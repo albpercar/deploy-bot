@@ -139,8 +139,7 @@ def send_NumOrd_message(update: Update, context: CallbackContext) -> None:
     global numCompras, numVentas,strOrdenes,CarteraBNB,CarteraUSDT,price
     try:
 
-
-        signal_message = f"Compras: {numCompras} \nVentas: {numVentas}\n"+strOrdenes+f"\n-CARTERA-\nBNB:{CarteraBNB}(en USDT {CarteraBNB*price})\nUSDT:{CarteraUSDT}"
+        signal_message = f"Compras: {numCompras} \nVentas: {numVentas}\n"+strOrdenes+f"\n-CARTERA-\nBNB:{CarteraBNB} ({CarteraBNB*price})\nUSDT:{CarteraUSDT}"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
         #context.bot.send_message(chat_id=CHAT_ID, text=strOrdenes)
