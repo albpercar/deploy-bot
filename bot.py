@@ -21,11 +21,16 @@ numCompras=0
 numVentas=0
 compra = True
 latest_data = {}
+
+#Cartera con la que opero
+CarteraBNB=0
+CarteraUSDT=1000
+
 strOrdenes=f"Ordenes realizadas: \n"
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v3.2.0")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v4.0.0")
 
 # Función para obtener el precio actual de BNB/USDT desde CoinGecko
 def get_bnb_usdt_price() -> float:
@@ -84,7 +89,7 @@ def get_last_50_prices():
 
 # Función que obtiene el precio actual y lo envía al chat
 def get_price_and_send(context: CallbackContext) -> None:
-    global compra, price, latest_data,numCompras,numVentas,strOrdenes
+    global compra, price, latest_data,numCompras,numVentas,strOrdenes,CarteraBNB,CarteraUSDT
     try:
         # Obtener el precio actual
         price = get_bnb_usdt_price()
@@ -105,7 +110,8 @@ def get_price_and_send(context: CallbackContext) -> None:
                     compra = False
                     numCompras=numCompras+1
                     strOrdenes=strOrdenes+f"Compra a precio: {price}\n"
-
+                    CarteraBNB=CarteraUSDT/float(price)
+                    CarteraUSDT=0
             else:
                 # Estrategia de venta
                 if float(price) > float(latest_data['upper_band']):
@@ -114,6 +120,8 @@ def get_price_and_send(context: CallbackContext) -> None:
                     compra = True
                     numVentas = numVentas + 1
                     strOrdenes = strOrdenes + f"    VENTA a precio: {price}\n"
+                    CarteraUSDT = CarteraBNB*float(price)
+                    CarteraBNB = 0
     except Exception as e:
         #error_message = f"Error al obtener el precio: {str(e)}"
         #context.bot.send_message(chat_id=CHAT_ID, text=error_message)
@@ -128,9 +136,11 @@ def send_alive_message(context: CallbackContext) -> None:
 
 
 def send_NumOrd_message(update: Update, context: CallbackContext) -> None:
-    global numCompras, numVentas,strOrdenes
+    global numCompras, numVentas,strOrdenes,CarteraBNB,CarteraUSDT,price
     try:
-        signal_message = f"Compras: {numCompras} \nVentas: {numVentas}\n"+strOrdenes
+
+
+        signal_message = f"Compras: {numCompras} \nVentas: {numVentas}\n"+strOrdenes+f"\n-CARTERA-\nBNB:{CarteraBNB}(en USDT {CarteraBNB*price})\nUSDT:{CarteraUSDT}"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
         #context.bot.send_message(chat_id=CHAT_ID, text=strOrdenes)
