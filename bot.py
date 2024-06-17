@@ -20,6 +20,10 @@ price_history = []
 numCompras=0
 numVentas=0
 compra = True
+ventaObligada=False
+
+precioTope=price
+
 latest_data = {}
 
 #Cartera con la que opero
@@ -30,7 +34,7 @@ strOrdenes=f"Ordenes realizadas: \n"
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v4.0.0")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v4.0.1")
 
 # Función para obtener el precio actual de BNB/USDT desde CoinGecko
 def get_bnb_usdt_price() -> float:
@@ -89,7 +93,7 @@ def get_last_50_prices():
 
 # Función que obtiene el precio actual y lo envía al chat
 def get_price_and_send(context: CallbackContext) -> None:
-    global compra, price, latest_data,numCompras,numVentas,strOrdenes,CarteraBNB,CarteraUSDT
+    global compra, price, latest_data,numCompras,numVentas,strOrdenes,CarteraBNB,CarteraUSDT,ventaObligada,precioTope
     try:
         # Obtener el precio actual
         price = get_bnb_usdt_price()
@@ -106,6 +110,7 @@ def get_price_and_send(context: CallbackContext) -> None:
                 # Estrategia de compra
                 if float(price) < float(latest_data['lower_band']):
                     signal_message = f"Momento de Compra a precio: {price} USDT"
+                    precioTope=price-5
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = False
                     numCompras=numCompras+1
@@ -114,7 +119,13 @@ def get_price_and_send(context: CallbackContext) -> None:
                     CarteraUSDT=0
             else:
                 # Estrategia de venta
-                if float(price) > float(latest_data['upper_band']):
+                if precioTope > float(price):
+                    signal_message = f"en precio tope({precioTope}) es mayor que el precio({price})"
+                    context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+                    ventaObligada=True
+                    precioTope=0
+
+                if (float(price) > float(latest_data['upper_band']) or ventaObligada==True):
                     signal_message = f"Momento de Venta a precio: {price} USDT"
                     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                     compra = True
@@ -122,6 +133,7 @@ def get_price_and_send(context: CallbackContext) -> None:
                     strOrdenes = strOrdenes + f"    VENTA a precio: {price}\n"
                     CarteraUSDT = CarteraBNB*float(price)
                     CarteraBNB = 0
+                    ventaObligada=False
     except Exception as e:
         #error_message = f"Error al obtener el precio: {str(e)}"
         #context.bot.send_message(chat_id=CHAT_ID, text=error_message)
@@ -134,6 +146,11 @@ def send_alive_message(context: CallbackContext) -> None:
     signal_message = f"Precio: {price} USDT"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
+def send_NumOrd_message(update: Update, context: CallbackContext) -> None:
+    global ventaObligada
+    ventaObligada=True
+    signal_message = f"venta obligada recibida!"
+    context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
 def send_NumOrd_message(update: Update, context: CallbackContext) -> None:
     global numCompras, numVentas,strOrdenes,CarteraBNB,CarteraUSDT,price
@@ -148,7 +165,7 @@ def send_NumOrd_message(update: Update, context: CallbackContext) -> None:
 
 # Función para enviar un resumen al recibir el comando /resumen
 def send_summary(update: Update, context: CallbackContext) -> None:
-    global latest_data, price, compra
+    global latest_data, price, compra,precioTope
     try:
         summary_message = (
             # f"-short_ma: {latest_data['short_ma']:.2f},\n "
@@ -156,7 +173,7 @@ def send_summary(update: Update, context: CallbackContext) -> None:
             f"-upper_band: {latest_data['upper_band']}\n"
             f"-price: {price}\n"
             f"-lower_band: {latest_data['lower_band']}\n\n "
-
+            f"-stoploss: {precioTope}\n\n"
         )
 
         # Explicar las condiciones
@@ -211,6 +228,7 @@ def main() -> None:
             # Añadir manejador de comando para /resumen
             updater.dispatcher.add_handler(CommandHandler('resumen', send_summary))
             updater.dispatcher.add_handler(CommandHandler('ordenes', send_NumOrd_message))
+            updater.dispatcher.add_handler(CommandHandler('venta', send_venta))
 
             # Empezar el bot
             updater.start_polling()
