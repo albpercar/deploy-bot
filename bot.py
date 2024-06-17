@@ -34,7 +34,7 @@ strOrdenes=f"Ordenes realizadas: \n"
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v4.0.1")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v4.0.2")
 
 # Función para obtener el precio actual de BNB/USDT desde CoinGecko
 def get_bnb_usdt_price() -> float:
@@ -146,7 +146,7 @@ def send_alive_message(context: CallbackContext) -> None:
     signal_message = f"Precio: {price} USDT"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
-def send_NumOrd_message(update: Update, context: CallbackContext) -> None:
+def send_venta(update: Update, context: CallbackContext) -> None:
     global ventaObligada
     ventaObligada=True
     signal_message = f"venta obligada recibida!"
