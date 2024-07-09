@@ -13,7 +13,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 filename = 'ordenes.csv'
 
 # Tu token de acceso de bot
-#TOKEN = '7294424253:AAG6rjghmNpRsyMYTQWjogqEiRJDDjflloM'
+# TOKEN = '7294424253:AAG6rjghmNpRsyMYTQWjogqEiRJDDjflloM'
 TOKEN = '7338148224:AAEXnqui8026QPC2fUjzUM3-c53OhuH70fs'
 
 # ID del chat al que enviarás el precio
@@ -22,21 +22,19 @@ CHAT_ID = '172259495'  # Tu chat ID
 price = 0
 # Lista para almacenar los precios históricos
 price_history = []
-numCompras=0
-numVentas=0
+numCompras = 0
+numVentas = 0
 compra = True
-ventaObligada=False
-operar=True
+ventaObligada = False
+operar = True
 
-precioTope=price
+precioTope = price
 
 latest_data = {}
 
-#Cartera con la que opero
-CarteraBNB=0
-CarteraUSDT=1000
-
-#strOrdenes=f"Ordenes realizadas: \n"
+# Cartera con la que opero
+CarteraBNB = 0
+CarteraUSDT = 1000
 
 # Función para crear el archivo si no existe
 def create_csv_if_not_exists(filename):
@@ -64,7 +62,7 @@ def generate_summary():
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v5.0.0")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v6.0.0")
 
 # Función para obtener el precio actual de BNB/USDT desde CoinGecko
 def get_bnb_usdt_price() -> float:
@@ -80,15 +78,9 @@ def get_bnb_usdt_price() -> float:
     except requests.exceptions.RequestException as e:
         raise ValueError(f"Error en la solicitud HTTP: {e}")
 
-# Función para calcular las Bandas de Bollinger y la SMA
+# Función para calcular las Bandas de Bollinger, RSI y RSI Estocástico
 def calculate_indicators(data):
     df = pd.DataFrame(data, columns=['price'])
-
-    # Calcula la media móvil
-    # short_window = 10
-    # long_window = 50
-    # df['short_ma'] = ta.trend.sma_indicator(df['price'], window=short_window)
-    # df['long_ma'] = ta.trend.sma_indicator(df['price'], window=long_window)
 
     # Calcula las Bandas de Bollinger
     bollinger_window = 20
@@ -96,6 +88,14 @@ def calculate_indicators(data):
     bollinger_bands = ta.volatility.BollingerBands(df['price'], window=bollinger_window, window_dev=bollinger_std_dev)
     df['upper_band'] = bollinger_bands.bollinger_hband()
     df['lower_band'] = bollinger_bands.bollinger_lband()
+
+    # Calcula el RSI
+    rsi_window = 14
+    df['rsi'] = ta.momentum.RSIIndicator(df['price'], window=rsi_window).rsi()
+
+    # Calcula el RSI Estocástico
+    df['rsi_stoch'] = ((df['rsi'] - df['rsi'].rolling(window=rsi_window).min()) /
+                       (df['rsi'].rolling(window=rsi_window).max() - df['rsi'].rolling(window=rsi_window).min())) * 100
 
     return df
 
@@ -123,7 +123,7 @@ def get_last_50_prices():
 
 # Función que obtiene el precio actual y lo envía al chat
 def get_price_and_send(context: CallbackContext) -> None:
-    global compra, price, latest_data,numCompras,numVentas,CarteraBNB,CarteraUSDT,ventaObligada,precioTope,operar
+    global compra, price, latest_data, numCompras, numVentas, CarteraBNB, CarteraUSDT, ventaObligada, precioTope, operar
     try:
         # Obtener el precio actual
         price = get_bnb_usdt_price()
@@ -139,39 +139,34 @@ def get_price_and_send(context: CallbackContext) -> None:
             if operar:
                 if compra:
                     # Estrategia de compra
-                    if float(price) < float(latest_data['lower_band']):
+                    if float(price) < float(latest_data['lower_band']) and float(latest_data['rsi_stoch']) < 20:
                         signal_message = f"Momento de Compra a precio: {price} USDT"
-                        precioTope=price-5
+                        precioTope = price - 5
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                         compra = False
-                        numCompras=numCompras+1
-                        #strOrdenes=strOrdenes+f"Compra a precio: {price}\n"
+                        numCompras = numCompras + 1
                         add_order("COMPRA", str(price))
-                        CarteraBNB=CarteraUSDT/float(price)
-                        CarteraUSDT=0
+                        CarteraBNB = CarteraUSDT / float(price)
+                        CarteraUSDT = 0
                 else:
                     # Estrategia de venta
                     if precioTope > float(price):
                         signal_message = f"en precio tope({precioTope}) es mayor que el precio({price}), Cerramos las operaciones!"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                        ventaObligada=True
-                        precioTope=0
-                        operar=False
+                        ventaObligada = True
+                        precioTope = 0
+                        operar = False
 
-                    if (float(price) > float(latest_data['upper_band']) or ventaObligada==True):
+                    if (float(price) > float(latest_data['upper_band']) or ventaObligada == True) and float(latest_data['rsi_stoch']) > 80:
                         signal_message = f"Momento de Venta a precio: {price} USDT"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                         compra = True
                         numVentas = numVentas + 1
-                        #strOrdenes = strOrdenes + f"Venta a precio: {price}\n"
                         add_order("VENTA", str(price))
-                        CarteraUSDT = CarteraBNB*float(price)
+                        CarteraUSDT = CarteraBNB * float(price)
                         CarteraBNB = 0
-                        ventaObligada=False
+                        ventaObligada = False
     except Exception as e:
-        #error_message = f"Error al obtener el precio: {str(e)}"
-        #context.bot.send_message(chat_id=CHAT_ID, text=error_message)
-        #print(error_message)  # Esto imprimirá el mensaje de error en la consola para más detalles
         pass
 
 # Función que envía un mensaje cada 10 minutos para indicar que el bot sigue vivo
@@ -182,7 +177,7 @@ def send_alive_message(context: CallbackContext) -> None:
 
 def send_noOperar(update: Update, context: CallbackContext) -> None:
     global operar
-    operar=False
+    operar = False
     signal_message = f"Recibido, NO se opera"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
@@ -200,68 +195,48 @@ def send_comandos(update: Update, context: CallbackContext) -> None:
 
 def send_Operar(update: Update, context: CallbackContext) -> None:
     global operar
-    operar=True
+    operar = True
     signal_message = f"Recibido, vamos a operar!"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
 def send_venta(update: Update, context: CallbackContext) -> None:
     global ventaObligada
-    ventaObligada=True
+    ventaObligada = True
     signal_message = f"venta obligada recibida!"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
 def send_NumOrd_message(update: Update, context: CallbackContext) -> None:
-    global numCompras, numVentas,CarteraBNB,CarteraUSDT,price,operar
+    global numCompras, numVentas, CarteraBNB, CarteraUSDT, price, operar
     try:
-        estado="NO ACTIVADO"
+        estado = "NO ACTIVADO"
         if operar:
-            estado="ACTIVADO"
-        strOrdenes=f"Ordenes realizadas: \n"+generate_summary()
-        signal_message = f"Estado:{estado}\nCompras: {numCompras} \nVentas: {numVentas}\n"+strOrdenes+f"\n-CARTERA-\nBNB:{CarteraBNB} ({CarteraBNB*price})\nUSDT:{CarteraUSDT}"
+            estado = "ACTIVADO"
+        strOrdenes = f"Ordenes realizadas: \n" + generate_summary()
+        signal_message = f"Estado:{estado}\nCompras: {numCompras} \nVentas: {numVentas}\n" + strOrdenes + f"\n-CARTERA-\nBNB:{CarteraBNB} ({CarteraBNB * price})\nUSDT:{CarteraUSDT}"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
-        #context.bot.send_message(chat_id=CHAT_ID, text=strOrdenes)
     except:
         pass
 
 # Función para enviar un resumen al recibir el comando /resumen
 def send_summary(update: Update, context: CallbackContext) -> None:
-    global latest_data, price, compra,precioTope
+    global latest_data, price, compra, precioTope
     try:
         summary_message = (
-            # f"-short_ma: {latest_data['short_ma']:.2f},\n "
-            # f"-long_ma: {latest_data['long_ma']:.2f},\n "
             f"-upper_band: {latest_data['upper_band']}\n"
             f"-price: {price}\n"
-            f"-lower_band: {latest_data['lower_band']}\n\n "
+            f"-lower_band: {latest_data['lower_band']}\n"
+            f"-rsi: {latest_data['rsi']}\n"
+            f"-rsi_stoch: {latest_data['rsi_stoch']}\n"
             f"-stoploss: {precioTope}\n\n"
         )
 
-        # Explicar las condiciones
-        #if compra:
         summary_message += "Condiciones para Compra:\n"
-        # summary_message += "- short_ma >= long_ma\n"
         summary_message += "- price <= lower_band\n"
-        # if latest_data['short_ma'] >= latest_data['long_ma']:
-        #     summary_message += "Condición short_ma >= long_ma: Cumplida\n"
-        # else:
-        #     summary_message += "Condición short_ma >= long_ma: No cumplida\n"
-        # if price <= latest_data['lower_band']:
-        #     summary_message += "Condición price <= lower_band: Cumplida\n"
-        # else:
-        #     summary_message += "Condición price <= lower_band: No cumplida\n"
-        #else:
+        summary_message += "- rsi_stoch < 20\n"
         summary_message += "\nCondiciones para Venta:\n"
-        # summary_message += "- short_ma < long_ma\n"
-        summary_message += "- price >= upper_band\n\n"
-        # if latest_data['short_ma'] <= latest_data['long_ma']:
-        #     summary_message += "Condición short_ma <= long_ma: Cumplida\n"
-        # else:
-        #     summary_message += "Condición short_ma <= long_ma: No cumplida\n"
-        # if price >= latest_data['upper_band']:
-        #     summary_message += "Condición price >= upper_band: Cumplida\n"
-        # else:
-        #     summary_message += "Condición price >= upper_band: No cumplida\n"
+        summary_message += "- price >= upper_band\n"
+        summary_message += "- rsi_stoch > 80\n\n"
 
         update.message.reply_text(summary_message)
     except Exception as e:
@@ -269,7 +244,6 @@ def send_summary(update: Update, context: CallbackContext) -> None:
         update.message.reply_text(error_message)
 
 def main() -> None:
-
     # Crear el archivo si no existe
     create_csv_if_not_exists(filename)
     while True:
