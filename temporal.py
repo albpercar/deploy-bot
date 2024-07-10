@@ -13,11 +13,10 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 filename = 'ordenes.csv'
 
 # Tu token de acceso de bot
-# TOKEN = ''
 TOKEN = '7338148224:AAEXnqui8026QPC2fUjzUM3-c53OhuH70fs'
 
-# ID del chat al que enviarás el precio
-CHAT_ID = '172259495'  # Tu chat ID
+# ID del grupo al que enviarás el precio
+CHAT_ID = '-172259495'  # Tu chat ID del grupo (asegúrate de usar el ID correcto con un prefijo '-')
 
 price = 0
 # Lista para almacenar los precios históricos
@@ -121,7 +120,7 @@ def get_last_50_prices():
 
     return formatted_prices
 
-# Función que obtiene el precio actual y lo envía al chat
+# Función que obtiene el precio actual y lo envía al grupo
 def get_price_and_send(context: CallbackContext) -> None:
     global compra, price, latest_data, numCompras, numVentas, CarteraBNB, CarteraUSDT, ventaObligada, precioTope, operar
     try:
