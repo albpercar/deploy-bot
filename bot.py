@@ -6,18 +6,18 @@ from telegram.ext import Updater, CallbackContext, CommandHandler, JobQueue
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import csv
 import os
+import yfinance as yf
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # Nombre del archivo
-filename = 'ordenes.csv'
+filename = 'ordenes_gold.csv'
 
 # Tu token de acceso de bot
-# TOKEN = '7294424253:AAG6rjghmNpRsyMYTQWjogqEiRJDDjflloM'
-TOKEN = '7294424253:AAG6rjghmNpRsyMYTQWjogqEiRJDDjflloM'
+TOKEN = '7338148224:AAEXnqui8026QPC2fUjzUM3-c53OhuH70fs'
 
-# ID del chat al que enviarás el precio
-CHAT_ID = '-4212463400'  # Tu chat ID
+# ID del chat del grupo al que enviarás el precio
+CHAT_ID = '-4263670276'  # Tu chat ID del grupo
 
 price = 0
 # Lista para almacenar los precios históricos
@@ -33,7 +33,7 @@ precioTope = price
 latest_data = {}
 
 # Cartera con la que opero
-CarteraBNB = 0
+CarteraGold = 0
 CarteraUSDT = 1000
 
 # Función para crear el archivo si no existe
@@ -62,21 +62,20 @@ def generate_summary():
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v6.0.2 OFICIAL")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot GOLD v1.0.0 OFICIAL")
 
-# Función para obtener el precio actual de BNB/USDT desde CoinGecko
-def get_bnb_usdt_price() -> float:
-    url = 'https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd'
+# Función para obtener el precio actual del oro usando yfinance
+def get_gold_price() -> float:
     try:
-        response = requests.get(url, timeout=10)  # Añadir timeout para evitar bloqueos prolongados
-        response.raise_for_status()  # Esto lanzará una excepción para códigos de estado HTTP 4xx/5xx
-        data = response.json()
-        if 'binancecoin' in data and 'usd' in data['binancecoin']:
-            return float(data['binancecoin']['usd'])
+        gold = yf.Ticker("GC=F")
+        data = gold.history(period="1d", interval="1m")
+        if not data.empty:
+            price = data['Close'].iloc[-1]
+            return price
         else:
-            raise ValueError("La clave 'binancecoin' o 'usd' no se encuentra en la respuesta de la API")
-    except requests.exceptions.RequestException as e:
-        raise ValueError(f"Error en la solicitud HTTP: {e}")
+            raise ValueError("Error retrieving data: Empty dataset")
+    except Exception as e:
+        raise ValueError(f"Error retrieving data: {e}")
 
 # Función para calcular las Bandas de Bollinger, RSI y RSI Estocástico
 def calculate_indicators(data):
@@ -100,33 +99,17 @@ def calculate_indicators(data):
     return df
 
 def get_last_50_prices():
-    # Definir el par de trading y el número de datos a obtener
-    coin_id = 'binancecoin'
-    vs_currency = 'usd'
-
-    # Obtener los precios históricos de las últimas 24 horas en intervalos de 1 minuto
-    url = f'https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart'
-    params = {
-        'vs_currency': vs_currency,
-        'days': '1',  # Obtener datos de las últimas 24 horas
-    }
-    response = requests.get(url, params=params)
-    data = response.json()
-
-    # Extraer los precios y marcas de tiempo
-    prices = data['prices'][-50:]  # Tomar los últimos 50 datos
-
-    # Convertir marcas de tiempo a formato legible
-    formatted_prices = [(pric[1]) for pric in prices]
-
-    return formatted_prices
+    gold = yf.Ticker("GC=F")
+    data = gold.history(period="1d", interval="1m")
+    prices = data['Close'].tolist()[-50:]  # Tomar los últimos 50 datos
+    return prices
 
 # Función que obtiene el precio actual y lo envía al chat
 def get_price_and_send(context: CallbackContext) -> None:
-    global compra, price, latest_data, numCompras, numVentas, CarteraBNB, CarteraUSDT, ventaObligada, precioTope, operar
+    global compra, price, latest_data, numCompras, numVentas, CarteraGold, CarteraUSDT, ventaObligada, precioTope, operar
     try:
         # Obtener el precio actual
-        price = get_bnb_usdt_price()
+        price = get_gold_price()
 
         # Almacenar el precio histórico
         price_history = get_last_50_prices()
@@ -146,7 +129,7 @@ def get_price_and_send(context: CallbackContext) -> None:
                         compra = False
                         numCompras = numCompras + 1
                         add_order("COMPRA", str(price))
-                        CarteraBNB = CarteraUSDT / float(price)
+                        CarteraGold = CarteraUSDT / float(price)
                         CarteraUSDT = 0
                 else:
                     # Estrategia de venta
@@ -163,8 +146,8 @@ def get_price_and_send(context: CallbackContext) -> None:
                         compra = True
                         numVentas = numVentas + 1
                         add_order("VENTA", str(price))
-                        CarteraUSDT = CarteraBNB * float(price)
-                        CarteraBNB = 0
+                        CarteraUSDT = CarteraGold * float(price)
+                        CarteraGold = 0
                         ventaObligada = False
     except Exception as e:
         pass
@@ -206,13 +189,13 @@ def send_venta(update: Update, context: CallbackContext) -> None:
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
 def send_NumOrd_message(update: Update, context: CallbackContext) -> None:
-    global numCompras, numVentas, CarteraBNB, CarteraUSDT, price, operar
+    global numCompras, numVentas, CarteraGold, CarteraUSDT, price, operar
     try:
         estado = "NO ACTIVADO"
         if operar:
             estado = "ACTIVADO"
         strOrdenes = f"Ordenes realizadas: \n" + generate_summary()
-        signal_message = f"Estado:{estado}\nCompras: {numCompras} \nVentas: {numVentas}\n" + strOrdenes + f"\n-CARTERA-\nBNB:{CarteraBNB} ({CarteraBNB * price})\nUSDT:{CarteraUSDT}"
+        signal_message = f"Estado:{estado}\nCompras: {numCompras} \nVentas: {numVentas}\n" + strOrdenes + f"\n-CARTERA-\nGold:{CarteraGold} ({CarteraGold * price})\nUSDT:{CarteraUSDT}"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
     except:
@@ -277,8 +260,8 @@ def main() -> None:
             # Ejecutar el bot hasta que presionemos Ctrl-C o el proceso reciba SIGINT,
             # SIGTERM o SIGABRT.
             updater.idle()
-        except:
-            print("Salto una excepcion")
+        except Exception as e:
+            print(f"Salto una excepcion: {e}")
             continue
 
 if __name__ == '__main__':
