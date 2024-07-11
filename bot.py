@@ -62,7 +62,7 @@ def generate_summary():
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v6.0.1 OFICIAL")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot v6.0.2 OFICIAL")
 
 # Función para obtener el precio actual de BNB/USDT desde CoinGecko
 def get_bnb_usdt_price() -> float:
@@ -261,7 +261,7 @@ def main() -> None:
             job_queue.run_repeating(get_price_and_send, interval=60, first=0)
 
             # Agregar un trabajo recurrente que se ejecuta cada 10 minutos para enviar un mensaje "Sigo vivo"
-            job_queue.run_repeating(send_alive_message, interval=600, first=0)
+            job_queue.run_repeating(send_alive_message, interval=10800, first=0)
 
             # Añadir manejador de comando para /resumen
             updater.dispatcher.add_handler(CommandHandler('resumen', send_summary))
