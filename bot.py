@@ -10,14 +10,24 @@ import yfinance as yf
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
+# # Nombre del archivo
+# filename = 'ordenes_gold.csv'
+#
+# # Tu token de acceso de bot
+# TOKEN = '7338148224:AAEXnqui8026QPC2fUjzUM3-c53OhuH70fs'
+#
+# # ID del chat del grupo al que enviarás el precio
+# CHAT_ID = '-4263670276'  # Tu chat ID del grupo
+
 # Nombre del archivo
-filename = 'ordenes_gold.csv'
+filename = 'ordenes.csv'
 
 # Tu token de acceso de bot
-TOKEN = '7338148224:AAEXnqui8026QPC2fUjzUM3-c53OhuH70fs'
+# TOKEN = '7294424253:AAG6rjghmNpRsyMYTQWjogqEiRJDDjflloM'
+TOKEN = '7294424253:AAG6rjghmNpRsyMYTQWjogqEiRJDDjflloM'
 
-# ID del chat del grupo al que enviarás el precio
-CHAT_ID = '-4263670276'  # Tu chat ID del grupo
+# ID del chat al que enviarás el precio
+CHAT_ID = '-4212463400'  # Tu chat ID
 
 price = 0
 # Lista para almacenar los precios históricos
