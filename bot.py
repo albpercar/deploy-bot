@@ -216,7 +216,7 @@ def get_price_and_send_5m(context: CallbackContext) -> None:
             if operar_5m:
                 if compra_5m:
                     # Estrategia de compra
-                    if float(price_5m) < float(latest_data_1m['lower_band']) and float(latest_data_5m['rsi_stoch']) < 20:
+                    if float(price_5m) < float(latest_data_5m['lower_band']) and float(latest_data_5m['rsi_stoch']) < 20:
                         signal_message = f"(5 min) Momento de Compra a precio: {price_5m} USDT"
                         precioTope_5m = price_5m - 5
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
