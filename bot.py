@@ -99,7 +99,7 @@ def generate_summary(filename):
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot GOLD v2.0.0 OFICIAL")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot GOLD v2.0.1 OFICIAL")
 
 # Función para obtener el precio actual del oro usando yfinance
 def get_gold_price() -> float:
@@ -179,14 +179,14 @@ def get_price_and_send_1m(context: CallbackContext) -> None:
                         CarteraUSDT_1m = 0
                 else:
                     # Estrategia de venta
-                    if precioTope_1m > float(price_1m):
-                        signal_message = f"(1 min) en precio tope({precioTope_1m}) es mayor que el precio({price_1m}), Cerramos las operaciones!"
-                        context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                        ventaObligada_1m = True
-                        precioTope_1m = 0
-                        operar_1m = False
+                    # if precioTope_1m > float(price_1m):
+                    #     signal_message = f"(1 min) en precio tope({precioTope_1m}) es mayor que el precio({price_1m}), Cerramos las operaciones!"
+                    #     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+                    #     ventaObligada_1m = True
+                    #     precioTope_1m = 0
+                    #     operar_1m = False
 
-                    if (float(price_1m) > float(latest_data_1m['upper_band']) and float(latest_data_1m['rsi_stoch']) > 80) or ventaObligada_1m == True:
+                    if (float(price_1m) > float(latest_data_1m['upper_band']) and float(latest_data_1m['rsi_stoch']) > 80):# or ventaObligada_1m == True:
                         signal_message = f"(1 min) Momento de Venta a precio: {price_1m} USDT"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                         compra_1m = True
@@ -227,14 +227,14 @@ def get_price_and_send_5m(context: CallbackContext) -> None:
                         CarteraUSDT_5m = 0
                 else:
                     # Estrategia de venta
-                    if precioTope_5m > float(price_5m):
-                        signal_message = f"(5 min) en precio tope({precioTope_5m}) es mayor que el precio({price_5m}), Cerramos las operaciones!"
-                        context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                        ventaObligada_5m = True
-                        precioTope_5m = 0
-                        operar_5m = False
+                    # if precioTope_5m > float(price_5m):
+                    #     signal_message = f"(5 min) en precio tope({precioTope_5m}) es mayor que el precio({price_5m}), Cerramos las operaciones!"
+                    #     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+                    #     ventaObligada_5m = True
+                    #     precioTope_5m = 0
+                    #     operar_5m = False
 
-                    if (float(price_5m) > float(latest_data_5m['upper_band']) and float(latest_data_5m['rsi_stoch']) > 80) or ventaObligada_5m == True:
+                    if (float(price_5m) > float(latest_data_5m['upper_band']) and float(latest_data_5m['rsi_stoch']) > 80):# or ventaObligada_5m == True:
                         signal_message = f"(5 min) Momento de Venta a precio: {price_5m} USDT"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                         compra_5m = True
@@ -305,26 +305,26 @@ def send_venta_5m(update: Update, context: CallbackContext) -> None:
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
 def send_NumOrd_message_1m(update: Update, context: CallbackContext) -> None:
-    global numCompras_1m, numVentas_1m, CarteraGold_1m, CarteraUSDT_1m, price, operar_1m
+    global numCompras_1m, numVentas_1m, CarteraGold_1m, CarteraUSDT_1m, price_1m, operar_1m
     try:
         estado = "NO ACTIVADO"
         if operar_1m:
             estado = "ACTIVADO"
         strOrdenes_1m = f"Ordenes realizadas: \n" + generate_summary(filename_1m)
-        signal_message = f"(gold 1m)\nEstado:{estado}\nCompras: {numCompras_1m} \nVentas: {numVentas_1m}\n" + strOrdenes_1m + f"\n-CARTERA-\nGold:{CarteraGold_1m} ({CarteraGold_1m * price})\nUSDT:{CarteraUSDT_1m}"
+        signal_message = f"(gold 1m)\nEstado:{estado}\nCompras: {numCompras_1m} \nVentas: {numVentas_1m}\n" + strOrdenes_1m + f"\n-CARTERA-\nGold:{CarteraGold_1m} ({CarteraGold_1m * price_1m})\nUSDT:{CarteraUSDT_1m}"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
     except:
         pass
 
 def send_NumOrd_message_5m(update: Update, context: CallbackContext) -> None:
-    global numCompras_5m, numVentas_5m, CarteraGold_5m, CarteraUSDT_5m, price, operar_5m
+    global numCompras_5m, numVentas_5m, CarteraGold_5m, CarteraUSDT_5m, price_5m, operar_5m
     try:
         estado = "NO ACTIVADO"
-        if operar_1m:
+        if operar_5m:
             estado = "ACTIVADO"
         strOrdenes_5m = f"Ordenes realizadas: \n" + generate_summary(filename_5m)
-        signal_message = f"(gold 5m)\nEstado:{estado}\nCompras: {numCompras_5m} \nVentas: {numVentas_5m}\n" + strOrdenes_5m + f"\n-CARTERA-\nGold:{CarteraGold_5m} ({CarteraGold_5m * price})\nUSDT:{CarteraUSDT_5m}"
+        signal_message = f"(gold 5m)\nEstado:{estado}\nCompras: {numCompras_5m} \nVentas: {numVentas_5m}\n" + strOrdenes_5m + f"\n-CARTERA-\nGold:{CarteraGold_5m} ({CarteraGold_5m * price_5m})\nUSDT:{CarteraUSDT_5m}"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
     except:
@@ -410,12 +410,12 @@ def main() -> None:
             updater.dispatcher.add_handler(CommandHandler('resumen5', send_summary_5m))
             updater.dispatcher.add_handler(CommandHandler('ordenes1', send_NumOrd_message_1m))
             updater.dispatcher.add_handler(CommandHandler('ordenes5', send_NumOrd_message_5m))
-            updater.dispatcher.add_handler(CommandHandler('venta', send_venta_1m))
-            updater.dispatcher.add_handler(CommandHandler('venta', send_venta_5m))
-            updater.dispatcher.add_handler(CommandHandler('noOperar', send_noOperar_1m))
-            updater.dispatcher.add_handler(CommandHandler('noOperar', send_noOperar_5m))
-            updater.dispatcher.add_handler(CommandHandler('operar', send_Operar_1m))
-            updater.dispatcher.add_handler(CommandHandler('operar', send_Operar_5m))
+            # updater.dispatcher.add_handler(CommandHandler('venta', send_venta_1m))
+            # updater.dispatcher.add_handler(CommandHandler('venta', send_venta_5m))
+            # updater.dispatcher.add_handler(CommandHandler('noOperar', send_noOperar_1m))
+            # updater.dispatcher.add_handler(CommandHandler('noOperar', send_noOperar_5m))
+            # updater.dispatcher.add_handler(CommandHandler('operar', send_Operar_1m))
+            # updater.dispatcher.add_handler(CommandHandler('operar', send_Operar_5m))
             updater.dispatcher.add_handler(CommandHandler('comandos', send_comandos))
 
             # Empezar el bot
