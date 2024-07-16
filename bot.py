@@ -22,6 +22,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 # Nombre del archivo
 filename_1m = 'ordenes_1m.csv'
 filename_5m = 'ordenes_5m.csv'
+filename_1h = 'ordenes_1h.csv'
 
 
 #OFICIAL: 7294424253:AAG6rjghmNpRsyMYTQWjogqEiRJDDjflloM
@@ -40,6 +41,7 @@ price = 0
 
 price_1m=price
 price_5m=price
+price_1h=price
 
 # Lista para almacenar los precios históricos
 price_history_1m = []
@@ -73,6 +75,22 @@ latest_data_5m = {}
 CarteraGold_5m = 0
 CarteraUSDT_5m = 1000
 
+# Lista para almacenar los precios históricos
+price_history_1h = []
+numCompras_1h = 0
+numVentas_1h = 0
+compra_1h = True
+ventaObligada_1h = False
+operar_1h = True
+
+precioTope_1h = price_1m
+
+latest_data_1h = {}
+
+# Cartera con la que opero
+CarteraGold_1h = 0
+CarteraUSDT_1h = 1000
+
 # Función para crear el archivo si no existe
 def create_csv_if_not_exists(filename):
     if not os.path.exists(filename):
@@ -99,11 +117,11 @@ def generate_summary(filename):
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot GOLD v3.0.0 OFICIAL")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot GOLD v4.0.0 TEST")
 
 # Función para obtener el precio actual del oro usando yfinance
 def get_gold_price() -> float:
-    global price_1m,price_5m
+    global price_1m,price_5m,price_1h
     try:
         gold = yf.Ticker("GC=F")
         data = gold.history(period="1d", interval="1m")
@@ -111,6 +129,7 @@ def get_gold_price() -> float:
             price = data['Close'].iloc[-1]
             price_1m=price
             price_5m=price
+            price_1h = price
             return price
         else:
             raise ValueError("Error retrieving data: Empty dataset")
@@ -147,6 +166,12 @@ def  get_last_50_prices_1m():
 def  get_last_50_prices_5m():
     gold = yf.Ticker("GC=F")
     data = gold.history(period="1d", interval="5m")
+    prices = data['Close'].tolist()[-50:]  # Tomar los últimos 50 datos
+    return prices
+
+def  get_last_50_prices_1h():
+    gold = yf.Ticker("GC=F")
+    data = gold.history(period="5d", interval="1h")
     prices = data['Close'].tolist()[-50:]  # Tomar los últimos 50 datos
     return prices
 
@@ -246,6 +271,55 @@ def get_price_and_send_5m(context: CallbackContext) -> None:
     except Exception as e:
         pass
 
+
+# Función que obtiene el precio actual y lo envía al chat
+def get_price_and_send_1h(context: CallbackContext) -> None:
+    global compra_1h, price_1h, latest_data_1h, numCompras_1h, numVentas_1h, CarteraGold_1h, CarteraUSDT_1h, ventaObligada_1h, precioTope_1h, operar_1h
+    try:
+        # Obtener el precio actual
+        price_1h = get_gold_price()
+
+        # Almacenar el precio histórico
+        price_history_1h = get_last_50_prices_1h()
+
+        if len(price_history_1h) >= 50:  # Asegúrate de tener suficientes datos para calcular los indicadores
+            df = calculate_indicators(price_history_1h)
+
+            # Obtén la fila más reciente
+            latest_data_1h = df.iloc[-1]
+            if operar_1h:
+                if compra_1h:
+                    # Estrategia de compra
+                    if float(price_1h) < float(latest_data_1h['lower_band']) and float(latest_data_1h['rsi_stoch']) < 20:
+                        signal_message = f"(1h min) Momento de Compra a precio: {price_1h} USDT"
+                        precioTope_1h = price_1h - 8
+                        context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+                        compra_1h = False
+                        numCompras_1h = numCompras_1h + 1
+                        add_order("COMPRA", str(price_1h),filename_1h)
+                        CarteraGold_1h = CarteraUSDT_1h / float(price_1h)
+                        CarteraUSDT_1h = 0
+                else:
+                    # Estrategia de venta
+                    if precioTope_1h > float(price_1h):
+                        signal_message = f"(1 h) en precio tope({precioTope_1h}) es mayor que el precio({price_1h}), Cerramos las operaciones!"
+                        context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+                        ventaObligada_1h = True
+                        precioTope_1h = 0
+                        #operar_1h = False
+
+                    if (float(price_1h) > float(latest_data_1h['upper_band']) and float(latest_data_1h['rsi_stoch']) > 80) or ventaObligada_1h == True:
+                        signal_message = f"(1h ) Momento de Venta a precio: {price_1h} USDT"
+                        context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+                        compra_1h = True
+                        numVentas_1h = numVentas_1h + 1
+                        add_order("VENTA", str(price_1h),filename_1h)
+                        CarteraUSDT_1h = CarteraGold_1h * float(price_1h)
+                        CarteraGold_1h = 0
+                        ventaObligada_1h = False
+    except Exception as e:
+        pass
+
 # Función que envía un mensaje cada 10 minutos para indicar que el bot sigue vivo
 def send_alive_message(context: CallbackContext) -> None:
     global price
@@ -264,18 +338,29 @@ def send_noOperar_5m(update: Update, context: CallbackContext) -> None:
     signal_message = f"Recibido, NO se opera"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
+def send_noOperar_1h(update: Update, context: CallbackContext) -> None:
+    global operar_1h
+    operar_1h = False
+    signal_message = f"Recibido, NO se opera"
+    context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+
 def send_comandos(update: Update, context: CallbackContext) -> None:
     summary_message = (
         f"/resumen1\n"
         f"/resumen5\n"
+        f"/resumen1h\n"
         f"/ordenes1\n"
         f"/ordenes5\n"
+        f"/ordenes1h\n"
         f"/venta1\n"
         f"/venta5\n"
+        f"/venta1h\n"
         f"/noOperar1\n"
         f"/operar1\n"
         f"/noOperar5\n"
         f"/operar5\n"
+        f"/noOperar1h\n"
+        f"/operar1h\n"
         f"/comandos\n"
     )
     context.bot.send_message(chat_id=CHAT_ID, text=summary_message)
@@ -304,6 +389,18 @@ def send_venta_5m(update: Update, context: CallbackContext) -> None:
     signal_message = f"venta obligada recibida! (5m)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
+def send_Operar_1h(update: Update, context: CallbackContext) -> None:
+    global operar_1h
+    operar_1h = True
+    signal_message = f"Recibido, vamos a operar! (1h)"
+    context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+
+def send_venta_1h(update: Update, context: CallbackContext) -> None:
+    global ventaObligada_1h
+    ventaObligada_1h = True
+    signal_message = f"venta obligada recibida! (1h)"
+    context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+
 def send_NumOrd_message_1m(update: Update, context: CallbackContext) -> None:
     global numCompras_1m, numVentas_1m, CarteraGold_1m, CarteraUSDT_1m, price_1m, operar_1m
     try:
@@ -325,6 +422,19 @@ def send_NumOrd_message_5m(update: Update, context: CallbackContext) -> None:
             estado = "ACTIVADO"
         strOrdenes_5m = f"Ordenes realizadas: \n" + generate_summary(filename_5m)
         signal_message = f"(gold 5m)\nEstado:{estado}\nCompras: {numCompras_5m} \nVentas: {numVentas_5m}\n" + strOrdenes_5m + f"\n-CARTERA-\nGold:{CarteraGold_5m} ({CarteraGold_5m * price_5m})\nUSDT:{CarteraUSDT_5m}"
+        context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+
+    except:
+        pass
+
+def send_NumOrd_message_1h(update: Update, context: CallbackContext) -> None:
+    global numCompras_1h, numVentas_1h, CarteraGold_1h, CarteraUSDT_1h, price_1h, operar_1h
+    try:
+        estado = "NO ACTIVADO"
+        if operar_1h:
+            estado = "ACTIVADO"
+        strOrdenes_1h = f"Ordenes realizadas: \n" + generate_summary(filename_1h)
+        signal_message = f"(gold 1h)\nEstado:{estado}\nCompras: {numCompras_1h} \nVentas: {numVentas_1h}\n" + strOrdenes_1h + f"\n-CARTERA-\nGold:{CarteraGold_1h} ({CarteraGold_1h * price_1h})\nUSDT:{CarteraUSDT_1h}"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
     except:
@@ -383,10 +493,37 @@ def send_summary_5m(update: Update, context: CallbackContext) -> None:
         error_message = f"Error al generar el resumen: {str(e)}"
         update.message.reply_text(error_message)
 
+def send_summary_1h(update: Update, context: CallbackContext) -> None:
+    global latest_data_1h, price_1h, compra_1h, precioTope_1h
+    try:
+        summary_message = (
+            f"**price** {price_1h}\n\n"
+            f"**BB**\n"
+            f"-upper_band: {latest_data_1h['upper_band']}\n"
+            f"-lower_band: {latest_data_1h['lower_band']}\n\n"
+            #f"-rsi: {latest_data['rsi']}\n"
+            f"**RSI** \n"
+            f"-rsi_stoch: {latest_data_1h['rsi_stoch']}\n\n"
+            f"-stoploss: {precioTope_1h}\n\n"
+        )
+
+        # summary_message += "Condiciones para Compra:\n"
+        # summary_message += "- price <= lower_band\n"
+        # summary_message += "- rsi_stoch < 20\n"
+        # summary_message += "\nCondiciones para Venta:\n"
+        # summary_message += "- price >= upper_band\n"
+        # summary_message += "- rsi_stoch > 80\n\n"
+
+        update.message.reply_text(summary_message)
+    except Exception as e:
+        error_message = f"Error al generar el resumen: {str(e)}"
+        update.message.reply_text(error_message)
+
 def main() -> None:
     # Crear el archivo si no existe
     create_csv_if_not_exists(filename_1m)
     create_csv_if_not_exists(filename_5m)
+    create_csv_if_not_exists(filename_1h)
     while True:
         try:
             # Crear el updater y pasarlo a tu bot token
@@ -401,6 +538,7 @@ def main() -> None:
             # Agregar un trabajo recurrente que se ejecuta cada minuto para obtener el precio y enviarlo
             job_queue.run_repeating(get_price_and_send_1m, interval=60, first=0)
             job_queue.run_repeating(get_price_and_send_5m, interval=60, first=0)
+            job_queue.run_repeating(get_price_and_send_1h, interval=60, first=0)
 
             # Agregar un trabajo recurrente que se ejecuta cada 10 minutos para enviar un mensaje "Sigo vivo"
             job_queue.run_repeating(send_alive_message, interval=10800, first=0)
@@ -408,14 +546,19 @@ def main() -> None:
             # Añadir manejador de comando para /resumen
             updater.dispatcher.add_handler(CommandHandler('resumen1', send_summary_1m))
             updater.dispatcher.add_handler(CommandHandler('resumen5', send_summary_5m))
+            updater.dispatcher.add_handler(CommandHandler('resumen1h', send_summary_1h))
             updater.dispatcher.add_handler(CommandHandler('ordenes1', send_NumOrd_message_1m))
             updater.dispatcher.add_handler(CommandHandler('ordenes5', send_NumOrd_message_5m))
+            updater.dispatcher.add_handler(CommandHandler('ordenes1h', send_NumOrd_message_1h))
             updater.dispatcher.add_handler(CommandHandler('venta1', send_venta_1m))
             updater.dispatcher.add_handler(CommandHandler('venta5', send_venta_5m))
+            updater.dispatcher.add_handler(CommandHandler('venta1h', send_venta_1h))
             updater.dispatcher.add_handler(CommandHandler('noOperar1', send_noOperar_1m))
             updater.dispatcher.add_handler(CommandHandler('noOperar5', send_noOperar_5m))
+            updater.dispatcher.add_handler(CommandHandler('noOperar1h', send_noOperar_1h))
             updater.dispatcher.add_handler(CommandHandler('operar1', send_Operar_1m))
             updater.dispatcher.add_handler(CommandHandler('operar5', send_Operar_5m))
+            updater.dispatcher.add_handler(CommandHandler('operar', send_Operar_1h))
             updater.dispatcher.add_handler(CommandHandler('comandos', send_comandos))
 
             # Empezar el bot
