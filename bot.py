@@ -29,13 +29,13 @@ filename_1h = 'ordenes_1h.csv'
 #TEST:7338148224:AAEXnqui8026QPC2fUjzUM3-c53OhuH70fs
 # Tu token de acceso de bot
 # TOKEN = '7294424253:AAG6rjghmNpRsyMYTQWjogqEiRJDDjflloM'
-TOKEN = '7294424253:AAG6rjghmNpRsyMYTQWjogqEiRJDDjflloM'
+TOKEN = '7338148224:AAEXnqui8026QPC2fUjzUM3-c53OhuH70fs'
 
 
 #OFICIAL: -4212463400
 #TEST:-4263670276
 # ID del chat al que enviarás el precio
-CHAT_ID = '-4212463400'  # Tu chat ID
+CHAT_ID = '-4263670276'  # Tu chat ID
 
 price = 0
 
@@ -117,7 +117,7 @@ def generate_summary(filename):
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot GOLD v4.0.0 TEST")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot GOLD v4.0.0 PROD")
 
 # Función para obtener el precio actual del oro usando yfinance
 def get_gold_price() -> float:
