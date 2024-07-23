@@ -6,6 +6,7 @@ from telegram.ext import Updater, CallbackContext, CommandHandler, JobQueue
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import csv
 import os
+from datetime import datetime, timedelta
 import yfinance as yf
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -20,9 +21,9 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 # CHAT_ID = '-4263670276'  # Tu chat ID del grupo
 
 # Nombre del archivo
-filename_1m = 'ordenes_1m.csv'
-filename_5m = 'ordenes_5m.csv'
-filename_1h = 'ordenes_1h.csv'
+filename_TSLA = 'ordenes_TSLA.csv'
+filename_NVDA = 'ordenes_NVDA.csv'
+filename_GOLD = 'ordenes_GOLD.csv'
 
 
 #OFICIAL: 7294424253:AAG6rjghmNpRsyMYTQWjogqEiRJDDjflloM
@@ -39,57 +40,57 @@ CHAT_ID = '-4212463400'  # Tu chat ID
 
 price = 0
 
-price_1m=price
-price_5m=price
-price_1h=price
+price_TSLA=price
+price_NVDA=price
+price_GOLD=price
 
 # Lista para almacenar los precios históricos
-price_history_1m = []
-numCompras_1m = 0
-numVentas_1m = 0
-compra_1m = True
-ventaObligada_1m = False
-operar_1m = True
+price_history_TSLA = []
+numCompras_TSLA = 0
+numVentas_TSLA = 0
+compra_TSLA = True
+ventaObligada_TSLA = False
+operar_TSLA = True
 
-precioTope_1m = price_1m
+precioTope_TSLA = price_TSLA
 
-latest_data_1m = {}
+latest_data_TSLA = {}
 
 # Cartera con la que opero
-CarteraGold_1m = 0
-CarteraUSDT_1m = 1000
+CarteraGold_TSLA = 0
+CarteraUSDT_TSLA = 1000
 
 # Lista para almacenar los precios históricos
-price_history_5m = []
-numCompras_5m = 0
-numVentas_5m = 0
-compra_5m = True
-ventaObligada_5m = False
-operar_5m = True
+price_history_NVDA = []
+numCompras_NVDA = 0
+numVentas_NVDA = 0
+compra_NVDA = True
+ventaObligada_NVDA = False
+operar_NVDA = True
 
-precioTope_5m = price_1m
+precioTope_NVDA = price_TSLA
 
-latest_data_5m = {}
+latest_data_NVDA = {}
 
 # Cartera con la que opero
-CarteraGold_5m = 0
-CarteraUSDT_5m = 1000
+CarteraGold_NVDA = 0
+CarteraUSDT_NVDA = 1000
 
 # Lista para almacenar los precios históricos
-price_history_1h = []
-numCompras_1h = 0
-numVentas_1h = 0
-compra_1h = True
-ventaObligada_1h = False
-operar_1h = True
+price_history_GOLD = []
+numCompras_GOLD = 0
+numVentas_GOLD = 0
+compra_GOLD = True
+ventaObligada_GOLD = False
+operar_GOLD = True
 
-precioTope_1h = price_1m
+precioTope_GOLD = price_TSLA
 
-latest_data_1h = {}
+latest_data_GOLD = {}
 
 # Cartera con la que opero
-CarteraGold_1h = 0
-CarteraUSDT_1h = 1000
+CarteraGold_GOLD = 0
+CarteraUSDT_GOLD = 1000
 
 # Función para crear el archivo si no existe
 def create_csv_if_not_exists(filename):
@@ -117,24 +118,51 @@ def generate_summary(filename):
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot GOLD v4.0.0 PROD")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot 5min v3.0.0")
 
 # Función para obtener el precio actual del oro usando yfinance
-def get_gold_price() -> float:
-    global price_1m,price_5m,price_1h
+def get_TSLA_price() -> float:
+    global price_TSLA,price_NVDA,price_GOLD
     try:
-        gold = yf.Ticker("GC=F")
+        gold = yf.Ticker("TSLA")
         data = gold.history(period="1d", interval="1m")
         if not data.empty:
             price = data['Close'].iloc[-1]
-            price_1m=price
-            price_5m=price
-            price_1h = price
+            price_TSLA=price
             return price
         else:
             raise ValueError("Error retrieving data: Empty dataset")
     except Exception as e:
         raise ValueError(f"Error retrieving data: {e}")
+
+def get_NVDA_price() -> float:
+    global price_TSLA,price_NVDA,price_GOLD
+    try:
+        gold = yf.Ticker("NVDA")
+        data = gold.history(period="2d", interval="1m")
+        if not data.empty:
+            price = data['Close'].iloc[-1]
+            price_NVDA=price
+            return price
+        else:
+            raise ValueError("Error retrieving data: Empty dataset")
+    except Exception as e:
+        raise ValueError(f"Error retrieving data: {e}")
+
+def get_GOLD_price() -> float:
+    global price_GOLD
+    try:
+        gold = yf.Ticker("GC=F")
+        data = gold.history(period="1d", interval="1m")
+        if not data.empty:
+            price = data['Close'].iloc[-1]
+            price_GOLD = price
+            return price
+        else:
+            raise ValueError("Error retrieving data: Empty dataset")
+    except Exception as e:
+        raise ValueError(f"Error retrieving data: {e}")
+
 
 # Función para calcular las Bandas de Bollinger, RSI y RSI Estocástico
 def calculate_indicators(data):
@@ -157,302 +185,370 @@ def calculate_indicators(data):
 
     return df
 
-def  get_last_50_prices_1m():
-    gold = yf.Ticker("GC=F")
-    data = gold.history(period="1d", interval="1m")
+def  get_last_50_prices_TSLA():
+    gold = yf.Ticker("TSLA")
+    data = gold.history(period="3d", interval="5m")
     prices = data['Close'].tolist()[-50:]  # Tomar los últimos 50 datos
     return prices
 
-def  get_last_50_prices_5m():
+def  get_last_50_prices_NVDA():
+    gold = yf.Ticker("NVDA")
+    data = gold.history(period="3d", interval="5m")
+    prices = data['Close'].tolist()[-50:]  # Tomar los últimos 50 datos
+    return prices
+
+def  get_last_50_prices_GOLD():
     gold = yf.Ticker("GC=F")
     data = gold.history(period="1d", interval="5m")
     prices = data['Close'].tolist()[-50:]  # Tomar los últimos 50 datos
     return prices
 
-def  get_last_50_prices_1h():
-    gold = yf.Ticker("GC=F")
-    data = gold.history(period="5d", interval="1h")
-    prices = data['Close'].tolist()[-50:]  # Tomar los últimos 50 datos
-    return prices
 
 # Función que obtiene el precio actual y lo envía al chat
-def get_price_and_send_1m(context: CallbackContext) -> None:
-    global compra_1m, price, latest_data_1m, numCompras_1m, numVentas_1m, CarteraGold_1m, CarteraUSDT_1m, ventaObligada_1m, precioTope_1m, operar_1m
+def get_price_and_send_TSLA(context: CallbackContext) -> None:
+    global compra_TSLA, price, latest_data_TSLA, numCompras_TSLA, numVentas_TSLA, CarteraGold_TSLA, CarteraUSDT_TSLA, ventaObligada_TSLA, precioTope_TSLA, operar_TSLA
     try:
         # Obtener el precio actual
-        price_1m = get_gold_price()
+        price_TSLA = get_TSLA_price()
 
         # Almacenar el precio histórico
-        price_history_1m = get_last_50_prices_1m()
+        price_history_TSLA = get_last_50_prices_TSLA()
 
-        if len(price_history_1m) >= 50:  # Asegúrate de tener suficientes datos para calcular los indicadores
-            df = calculate_indicators(price_history_1m)
+        if len(price_history_TSLA) >= 50:  # Asegúrate de tener suficientes datos para calcular los indicadores
+            df = calculate_indicators(price_history_TSLA)
 
             # Obtén la fila más reciente
-            latest_data_1m = df.iloc[-1]
-            if operar_1m:
-                if compra_1m:
+            latest_data_TSLA = df.iloc[-1]
+            if operar_TSLA:
+                if compra_TSLA:
                     # Estrategia de compra
-                    if float(price_1m) < float(latest_data_1m['lower_band']) and float(latest_data_1m['rsi_stoch']) < 20:
-                        signal_message = f"(1 min) Momento de Compra a precio: {price_1m} USDT"
-                        precioTope_1m = price_1m - 7
+                    if float(price_TSLA) < float(latest_data_TSLA['lower_band']) and float(latest_data_TSLA['rsi_stoch']) < 20:
+                        signal_message = f"(5 min TSLA) Momento de Compra a precio: {price_TSLA} USDT"
+                        precioTope_TSLA = price_TSLA - 7
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                        compra_1m = False
-                        numCompras_1m = numCompras_1m + 1
-                        add_order("COMPRA", str(price_1m),filename_1m)
-                        CarteraGold_1m = CarteraUSDT_1m / float(price_1m)
-                        CarteraUSDT_1m = 0
+                        compra_TSLA = False
+                        numCompras_TSLA = numCompras_TSLA + 1
+                        add_order("COMPRA", str(price_TSLA),filename_TSLA)
+                        CarteraGold_TSLA = CarteraUSDT_TSLA / float(price_TSLA)
+                        CarteraUSDT_TSLA = 0
                 else:
                     #Estrategia de venta
-                    if precioTope_1m > float(price_1m):
-                        signal_message = f"(1 min) en precio tope({precioTope_1m}) es mayor que el precio({price_1m}), Cerramos las operaciones!"
+                    if precioTope_TSLA > float(price_TSLA):
+                        signal_message = f"(5 min TSLA) en precio tope({precioTope_TSLA}) es mayor que el precio({price_TSLA}), Cerramos las operaciones!"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                        ventaObligada_1m = True
-                        precioTope_1m = 0
-                        #operar_1m = False
+                        ventaObligada_TSLA = True
+                        precioTope_TSLA = 0
+                        #operar_TSLA = False
 
-                    if (float(price_1m) > float(latest_data_1m['upper_band']) and float(latest_data_1m['rsi_stoch']) > 80) or ventaObligada_1m == True:
-                        signal_message = f"(1 min) Momento de Venta a precio: {price_1m} USDT"
+                    if (float(price_TSLA) > float(latest_data_TSLA['upper_band']) and float(latest_data_TSLA['rsi_stoch']) > 80) or ventaObligada_TSLA == True:
+                        signal_message = f"(5 min TSLA) Momento de Venta a precio: {price_TSLA} USDT"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                        compra_1m = True
-                        numVentas_1m = numVentas_1m + 1
-                        add_order("VENTA", str(price_1m),filename_1m)
-                        CarteraUSDT_1m = CarteraGold_1m * float(price_1m)
-                        CarteraGold_1m = 0
-                        ventaObligada_1m = False
+                        compra_TSLA = True
+                        numVentas_TSLA = numVentas_TSLA + 1
+                        add_order("VENTA", str(price_TSLA),filename_TSLA)
+                        CarteraUSDT_TSLA = CarteraGold_TSLA * float(price_TSLA)
+                        CarteraGold_TSLA = 0
+                        ventaObligada_TSLA = False
     except Exception as e:
         pass
 
 # Función que obtiene el precio actual y lo envía al chat
-def get_price_and_send_5m(context: CallbackContext) -> None:
-    global compra_5m, price_5m, latest_data_5m, numCompras_5m, numVentas_5m, CarteraGold_5m, CarteraUSDT_5m, ventaObligada_5m, precioTope_5m, operar_5m
+def get_price_and_send_NVDA(context: CallbackContext) -> None:
+    global compra_NVDA, price_NVDA, latest_data_NVDA, numCompras_NVDA, numVentas_NVDA, CarteraGold_NVDA, CarteraUSDT_NVDA, ventaObligada_NVDA, precioTope_NVDA, operar_NVDA
     try:
         # Obtener el precio actual
-        price_5m = get_gold_price()
+        price_NVDA = get_NVDA_price()
 
         # Almacenar el precio histórico
-        price_history_5m = get_last_50_prices_5m()
+        price_history_NVDA = get_last_50_prices_NVDA()
 
-        if len(price_history_5m) >= 50:  # Asegúrate de tener suficientes datos para calcular los indicadores
-            df = calculate_indicators(price_history_5m)
+        if len(price_history_NVDA) >= 50:  # Asegúrate de tener suficientes datos para calcular los indicadores
+            df = calculate_indicators(price_history_NVDA)
 
             # Obtén la fila más reciente
-            latest_data_5m = df.iloc[-1]
-            if operar_5m:
-                if compra_5m:
+            latest_data_NVDA = df.iloc[-1]
+            if operar_NVDA:
+                if compra_NVDA:
                     # Estrategia de compra
-                    if float(price_5m) < float(latest_data_5m['lower_band']) and float(latest_data_5m['rsi_stoch']) < 20:
-                        signal_message = f"(5 min) Momento de Compra a precio: {price_5m} USDT"
-                        precioTope_5m = price_5m - 8
+                    if float(price_NVDA) < float(latest_data_NVDA['lower_band']) and float(latest_data_NVDA['rsi_stoch']) < 20:
+                        signal_message = f"(5 min NVDA) Momento de Compra a precio: {price_NVDA} USDT"
+                        precioTope_NVDA = price_NVDA - 8
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                        compra_5m = False
-                        numCompras_5m = numCompras_5m + 1
-                        add_order("COMPRA", str(price_5m),filename_5m)
-                        CarteraGold_5m = CarteraUSDT_5m / float(price_5m)
-                        CarteraUSDT_5m = 0
+                        compra_NVDA = False
+                        numCompras_NVDA = numCompras_NVDA + 1
+                        add_order("COMPRA", str(price_NVDA),filename_NVDA)
+                        CarteraGold_NVDA = CarteraUSDT_NVDA / float(price_NVDA)
+                        CarteraUSDT_NVDA = 0
                 else:
                     # Estrategia de venta
-                    if precioTope_5m > float(price_5m):
-                        signal_message = f"(5 min) en precio tope({precioTope_5m}) es mayor que el precio({price_5m}), Cerramos las operaciones!"
+                    if precioTope_NVDA > float(price_NVDA):
+                        signal_message = f"(5 min NVDA) en precio tope({precioTope_NVDA}) es mayor que el precio({price_NVDA}), Cerramos las operaciones!"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                        ventaObligada_5m = True
-                        precioTope_5m = 0
-                        #operar_5m = False
+                        ventaObligada_NVDA = True
+                        precioTope_NVDA = 0
+                        #operar_NVDA = False
 
-                    if (float(price_5m) > float(latest_data_5m['upper_band']) and float(latest_data_5m['rsi_stoch']) > 80) or ventaObligada_5m == True:
-                        signal_message = f"(5 min) Momento de Venta a precio: {price_5m} USDT"
+                    if (float(price_NVDA) > float(latest_data_NVDA['upper_band']) and float(latest_data_NVDA['rsi_stoch']) > 80) or ventaObligada_NVDA == True:
+                        signal_message = f"(5 min NVDA) Momento de Venta a precio: {price_NVDA} USDT"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                        compra_5m = True
-                        numVentas_5m = numVentas_5m + 1
-                        add_order("VENTA", str(price_5m),filename_5m)
-                        CarteraUSDT_5m = CarteraGold_5m * float(price_5m)
-                        CarteraGold_5m = 0
-                        ventaObligada_5m = False
+                        compra_NVDA = True
+                        numVentas_NVDA = numVentas_NVDA + 1
+                        add_order("VENTA", str(price_NVDA),filename_NVDA)
+                        CarteraUSDT_NVDA = CarteraGold_NVDA * float(price_NVDA)
+                        CarteraGold_NVDA = 0
+                        ventaObligada_NVDA = False
     except Exception as e:
         pass
 
-
-# Función que obtiene el precio actual y lo envía al chat
-def get_price_and_send_1h(context: CallbackContext) -> None:
-    global compra_1h, price_1h, latest_data_1h, numCompras_1h, numVentas_1h, CarteraGold_1h, CarteraUSDT_1h, ventaObligada_1h, precioTope_1h, operar_1h
+def get_price_and_send_GOLD(context: CallbackContext) -> None:
+    global compra_GOLD, price_GOLD, latest_data_GOLD, numCompras_GOLD, numVentas_GOLD, CarteraGold_GOLD, CarteraUSDT_GOLD, ventaObligada_GOLD, precioTope_GOLD, operar_GOLD
     try:
         # Obtener el precio actual
-        price_1h = get_gold_price()
+        price_GOLD = get_GOLD_price()
 
         # Almacenar el precio histórico
-        price_history_1h = get_last_50_prices_1h()
+        price_history_GOLD = get_last_50_prices_GOLD()
 
-        if len(price_history_1h) >= 50:  # Asegúrate de tener suficientes datos para calcular los indicadores
-            df = calculate_indicators(price_history_1h)
+        if len(price_history_GOLD) >= 50:  # Asegúrate de tener suficientes datos para calcular los indicadores
+            df = calculate_indicators(price_history_GOLD)
 
             # Obtén la fila más reciente
-            latest_data_1h = df.iloc[-1]
-            if operar_1h:
-                if compra_1h:
+            latest_data_GOLD = df.iloc[-1]
+            if operar_GOLD:
+                if compra_GOLD:
                     # Estrategia de compra
-                    if float(price_1h) < float(latest_data_1h['lower_band']) and float(latest_data_1h['rsi_stoch']) < 20:
-                        signal_message = f"(1h min) Momento de Compra a precio: {price_1h} USDT"
-                        precioTope_1h = price_1h - 8
+                    if float(price_GOLD) < float(latest_data_GOLD['lower_band']) and float(latest_data_GOLD['rsi_stoch']) < 20:
+                        signal_message = f"(5 min) Momento de Compra a precio: {price_GOLD} USDT"
+                        precioTope_GOLD = price_GOLD - 8
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                        compra_1h = False
-                        numCompras_1h = numCompras_1h + 1
-                        add_order("COMPRA", str(price_1h),filename_1h)
-                        CarteraGold_1h = CarteraUSDT_1h / float(price_1h)
-                        CarteraUSDT_1h = 0
+                        compra_GOLD = False
+                        numCompras_GOLD = numCompras_GOLD + 1
+                        add_order("COMPRA", str(price_GOLD),filename_GOLD)
+                        CarteraGold_GOLD = CarteraUSDT_GOLD / float(price_GOLD)
+                        CarteraUSDT_GOLD = 0
                 else:
                     # Estrategia de venta
-                    if precioTope_1h > float(price_1h):
-                        signal_message = f"(1 h) en precio tope({precioTope_1h}) es mayor que el precio({price_1h}), Cerramos las operaciones!"
+                    if precioTope_GOLD > float(price_GOLD):
+                        signal_message = f"(5 min) en precio tope({precioTope_GOLD}) es mayor que el precio({price_GOLD}), Cerramos las operaciones!"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                        ventaObligada_1h = True
-                        precioTope_1h = 0
-                        #operar_1h = False
+                        ventaObligada_GOLD = True
+                        precioTope_GOLD = 0
+                        #operar_GOLD = False
 
-                    if (float(price_1h) > float(latest_data_1h['upper_band']) and float(latest_data_1h['rsi_stoch']) > 80) or ventaObligada_1h == True:
-                        signal_message = f"(1h ) Momento de Venta a precio: {price_1h} USDT"
+                    if (float(price_GOLD) > float(latest_data_GOLD['upper_band']) and float(latest_data_GOLD['rsi_stoch']) > 80) or ventaObligada_GOLD == True:
+                        signal_message = f"(5 min) Momento de Venta a precio: {price_GOLD} USDT"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
-                        compra_1h = True
-                        numVentas_1h = numVentas_1h + 1
-                        add_order("VENTA", str(price_1h),filename_1h)
-                        CarteraUSDT_1h = CarteraGold_1h * float(price_1h)
-                        CarteraGold_1h = 0
-                        ventaObligada_1h = False
+                        compra_GOLD = True
+                        numVentas_GOLD = numVentas_GOLD + 1
+                        add_order("VENTA", str(price_GOLD),filename_GOLD)
+                        CarteraUSDT_GOLD = CarteraGold_GOLD * float(price_GOLD)
+                        CarteraGold_GOLD = 0
+                        ventaObligada_GOLD = False
     except Exception as e:
         pass
+
+def comprobar_hora():
+    # Obtener la hora actual
+    hora_actual = datetime.now().hour
+    ret=False
+    # Comprobar si es las 2 PM o las 3 PM
+    if hora_actual == 14:
+        #print("Son las 2 de la tarde.")
+        ret=True
+    elif hora_actual == 15:
+        #print("Son las 3 de la tarde.")
+        ret = True
+    return ret
 
 # Función que envía un mensaje cada 10 minutos para indicar que el bot sigue vivo
 def send_alive_message(context: CallbackContext) -> None:
     global price
-    signal_message = f"Precio: {price} USDT"
+    signal_message = f"Mensaje para recordar que Jimenez es gay"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
-def send_noOperar_1m(update: Update, context: CallbackContext) -> None:
-    global operar_1m
-    operar_1m = False
-    signal_message = f"Recibido, NO se opera"
+
+def send_noOperar_TSLA(update: Update, context: CallbackContext) -> None:
+    global operar_TSLA
+    operar_TSLA = False
+    signal_message = f"Recibido, NO se opera (TSLA)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
-def send_noOperar_5m(update: Update, context: CallbackContext) -> None:
-    global operar_5m
-    operar_5m = False
-    signal_message = f"Recibido, NO se opera"
+def send_noOperar_NVDA(update: Update, context: CallbackContext) -> None:
+    global operar_NVDA
+    operar_NVDA = False
+    signal_message = f"Recibido, NO se opera (NVDA)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
-def send_noOperar_1h(update: Update, context: CallbackContext) -> None:
-    global operar_1h
-    operar_1h = False
-    signal_message = f"Recibido, NO se opera"
+def send_noOperar_GOLD(update: Update, context: CallbackContext) -> None:
+    global operar_GOLD
+    operar_GOLD = False
+    signal_message = f"Recibido, NO se opera (GOLD)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
 def send_comandos(update: Update, context: CallbackContext) -> None:
     summary_message = (
-        f"/resumen1\n"
-        f"/resumen5\n"
-        f"/resumen1h\n"
-        f"/ordenes1\n"
-        f"/ordenes5\n"
-        f"/ordenes1h\n"
-        f"/venta1\n"
-        f"/venta5\n"
-        f"/venta1h\n"
-        f"/noOperar1\n"
-        f"/operar1\n"
-        f"/noOperar5\n"
-        f"/operar5\n"
-        f"/noOperar1h\n"
-        f"/operar1h\n"
+        f"/resumenTSLA\n"
+        f"/resumenNVDA\n"
+        f"/resumenGOLD\n"
+        f"/ordenesTSLA\n"
+        f"/ordenesNVDA\n"
+        f"/ordenesGOLD\n"
+        f"/ventaTSLA\n"
+        f"/ventaNVDA\n"
+        f"/ventaGOLD\n"
+        f"/noOperarTSLA\n"
+        f"/operarTSLA\n"
+        f"/noOperarNVDA\n"
+        f"/operarNVDA\n"
+        f"/noOperarGOLD\n"
+        f"/operarGOLD\n"
         f"/comandos\n"
     )
     context.bot.send_message(chat_id=CHAT_ID, text=summary_message)
 
-def send_Operar_1m(update: Update, context: CallbackContext) -> None:
-    global operar_1m
-    operar_1m = True
-    signal_message = f"Recibido, vamos a operar! (1m)"
+def send_Operar_TSLA(update: Update, context: CallbackContext) -> None:
+    global operar_TSLA
+    operar_TSLA = True
+    signal_message = f"Recibido, vamos a operar! (TSLA)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
-def send_venta_1m(update: Update, context: CallbackContext) -> None:
-    global ventaObligada_1m
-    ventaObligada_1m = True
-    signal_message = f"venta obligada recibida! (1m)"
+def send_venta_TSLA(update: Update, context: CallbackContext) -> None:
+    global ventaObligada_TSLA
+    ventaObligada_TSLA = True
+    signal_message = f"venta obligada recibida! (TSLA)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
-def send_Operar_5m(update: Update, context: CallbackContext) -> None:
-    global operar_5m
-    operar_5m = True
-    signal_message = f"Recibido, vamos a operar! (5m)"
+def send_Operar_GOLD(update: Update, context: CallbackContext) -> None:
+    global operar_GOLD
+    operar_GOLD = True
+    signal_message = f"Recibido, vamos a operar! (GOLD)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
-def send_venta_5m(update: Update, context: CallbackContext) -> None:
-    global ventaObligada_5m
-    ventaObligada_5m = True
-    signal_message = f"venta obligada recibida! (5m)"
+def send_venta_GOLD(update: Update, context: CallbackContext) -> None:
+    global ventaObligada_GOLD
+    ventaObligada_GOLD = True
+    signal_message = f"venta obligada recibida! (GOLD)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
-def send_Operar_1h(update: Update, context: CallbackContext) -> None:
-    global operar_1h
-    operar_1h = True
-    signal_message = f"Recibido, vamos a operar! (1h)"
+def send_Operar_NVDA(update: Update, context: CallbackContext) -> None:
+    global operar_NVDA
+    operar_NVDA = True
+    signal_message = f"Recibido, vamos a operar! (NVDA)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
-def send_venta_1h(update: Update, context: CallbackContext) -> None:
-    global ventaObligada_1h
-    ventaObligada_1h = True
-    signal_message = f"venta obligada recibida! (1h)"
+def send_venta_NVDA(update: Update, context: CallbackContext) -> None:
+    global ventaObligada_NVDA
+    ventaObligada_NVDA = True
+    signal_message = f"venta obligada recibida! (NVDA)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
-def send_NumOrd_message_1m(update: Update, context: CallbackContext) -> None:
-    global numCompras_1m, numVentas_1m, CarteraGold_1m, CarteraUSDT_1m, price_1m, operar_1m
+def send_reset(update: Update, context: CallbackContext) -> None:
+    global ventaObligada_NVDA,numCompras_TSLA,numVentas_TSLA,compra_TSLA,ventaObligada_TSLA,operar_TSLA,precioTope_TSLA,latest_data_TSLA
+    global numCompras_NVDA, numVentas_NVDA, compra_NVDA, operar_NVDA, precioTope_NVDA, latest_data_NVDA, CarteraGold_NVDA, CarteraUSDT_NVDA
+    global numCompras_GOLD, numVentas_GOLD, compra_GOLD, ventaObligada_GOLD, operar_GOLD, precioTope_GOLD, latest_data_GOLD, CarteraGold_GOLD, CarteraUSDT_GOLD
+
+    signal_message = f"venta obligada recibida! (NVDA)"
+    context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
+
+
+    numCompras_TSLA = 0
+    numVentas_TSLA = 0
+    compra_TSLA = True
+    ventaObligada_TSLA = False
+    operar_TSLA = True
+
+    precioTope_TSLA = price_TSLA
+
+    latest_data_TSLA = {}
+
+    # Cartera con la que opero
+    CarteraGold_TSLA = 0
+    CarteraUSDT_TSLA = 1000
+
+
+    numCompras_NVDA = 0
+    numVentas_NVDA = 0
+    compra_NVDA = True
+    ventaObligada_NVDA = False
+    operar_NVDA = True
+
+    precioTope_NVDA = price_TSLA
+
+    latest_data_NVDA = {}
+
+    # Cartera con la que opero
+    CarteraGold_NVDA = 0
+    CarteraUSDT_NVDA = 1000
+
+
+    numCompras_GOLD = 0
+    numVentas_GOLD = 0
+    compra_GOLD = True
+    ventaObligada_GOLD = False
+    operar_GOLD = True
+
+    precioTope_GOLD = price_TSLA
+
+    latest_data_GOLD = {}
+
+    # Cartera con la que opero
+    CarteraGold_GOLD = 0
+    CarteraUSDT_GOLD = 1000
+
+
+def send_NumOrd_message_TSLA(update: Update, context: CallbackContext) -> None:
+    global numCompras_TSLA, numVentas_TSLA, CarteraGold_TSLA, CarteraUSDT_TSLA, price_TSLA, operar_TSLA
     try:
         estado = "NO ACTIVADO"
-        if operar_1m:
+        if operar_TSLA:
             estado = "ACTIVADO"
-        strOrdenes_1m = f"Ordenes realizadas: \n" + generate_summary(filename_1m)
-        signal_message = f"(gold 1m)\nEstado:{estado}\nCompras: {numCompras_1m} \nVentas: {numVentas_1m}\n" + strOrdenes_1m + f"\n-CARTERA-\nGold:{CarteraGold_1m} ({CarteraGold_1m * price_1m})\nUSDT:{CarteraUSDT_1m}"
+        strOrdenes_TSLA = f"Ordenes realizadas: \n" + generate_summary(filename_TSLA)
+        signal_message = f"(TSLA)\nEstado:{estado}\nCompras: {numCompras_TSLA} \nVentas: {numVentas_TSLA}\n" + strOrdenes_TSLA + f"\n-CARTERA-\nGold:{CarteraGold_TSLA} ({CarteraGold_TSLA * price_TSLA})\nUSDT:{CarteraUSDT_TSLA}"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
     except:
         pass
 
-def send_NumOrd_message_5m(update: Update, context: CallbackContext) -> None:
-    global numCompras_5m, numVentas_5m, CarteraGold_5m, CarteraUSDT_5m, price_5m, operar_5m
+def send_NumOrd_message_NVDA(update: Update, context: CallbackContext) -> None:
+    global numCompras_NVDA, numVentas_NVDA, CarteraGold_NVDA, CarteraUSDT_NVDA, price_NVDA, operar_NVDA
     try:
         estado = "NO ACTIVADO"
-        if operar_5m:
+        if operar_NVDA:
             estado = "ACTIVADO"
-        strOrdenes_5m = f"Ordenes realizadas: \n" + generate_summary(filename_5m)
-        signal_message = f"(gold 5m)\nEstado:{estado}\nCompras: {numCompras_5m} \nVentas: {numVentas_5m}\n" + strOrdenes_5m + f"\n-CARTERA-\nGold:{CarteraGold_5m} ({CarteraGold_5m * price_5m})\nUSDT:{CarteraUSDT_5m}"
+        strOrdenes_NVDA = f"Ordenes realizadas: \n" + generate_summary(filename_NVDA)
+        signal_message = f"(NVDA)\nEstado:{estado}\nCompras: {numCompras_NVDA} \nVentas: {numVentas_NVDA}\n" + strOrdenes_NVDA + f"\n-CARTERA-\nGold:{CarteraGold_NVDA} ({CarteraGold_NVDA * price_NVDA})\nUSDT:{CarteraUSDT_NVDA}"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
     except:
         pass
 
-def send_NumOrd_message_1h(update: Update, context: CallbackContext) -> None:
-    global numCompras_1h, numVentas_1h, CarteraGold_1h, CarteraUSDT_1h, price_1h, operar_1h
+def send_NumOrd_message_GOLD(update: Update, context: CallbackContext) -> None:
+    global numCompras_GOLD, numVentas_GOLD, CarteraGold_GOLD, CarteraUSDT_GOLD, price_GOLD, operar_GOLD
     try:
         estado = "NO ACTIVADO"
-        if operar_1h:
+        if operar_GOLD:
             estado = "ACTIVADO"
-        strOrdenes_1h = f"Ordenes realizadas: \n" + generate_summary(filename_1h)
-        signal_message = f"(gold 1h)\nEstado:{estado}\nCompras: {numCompras_1h} \nVentas: {numVentas_1h}\n" + strOrdenes_1h + f"\n-CARTERA-\nGold:{CarteraGold_1h} ({CarteraGold_1h * price_1h})\nUSDT:{CarteraUSDT_1h}"
+        strOrdenes_GOLD = f"Ordenes realizadas: \n" + generate_summary(filename_GOLD)
+        signal_message = f"(GOLD)\nEstado:{estado}\nCompras: {numCompras_GOLD} \nVentas: {numVentas_GOLD}\n" + strOrdenes_GOLD + f"\n-CARTERA-\nGold:{CarteraGold_GOLD} ({CarteraGold_GOLD * price_GOLD})\nUSDT:{CarteraUSDT_GOLD}"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
     except:
         pass
+
 
 # Función para enviar un resumen al recibir el comando /resumen
-def send_summary_1m(update: Update, context: CallbackContext) -> None:
-    global latest_data_1m, price_1m, compra_1m, precioTope_1m
+def send_summary_TSLA(update: Update, context: CallbackContext) -> None:
+    global latest_data_TSLA, price_TSLA, compra_TSLA, precioTope_TSLA
     try:
         summary_message = (
-            f"**price** {price_1m}\n\n"
+            f"**price** {price_TSLA}\n\n"
             f"**BB**\n"
-            f"-upper_band: {latest_data_1m['upper_band']}\n"
-            f"-lower_band: {latest_data_1m['lower_band']}\n\n"
+            f"-upper_band: {latest_data_TSLA['upper_band']}\n"
+            f"-lower_band: {latest_data_TSLA['lower_band']}\n\n"
             #f"-rsi: {latest_data['rsi']}\n"
             f"**RSI** \n"
-            f"-rsi_stoch: {latest_data_1m['rsi_stoch']}\n\n"
-            f"-stoploss: {precioTope_1m}\n\n"
+            f"-rsi_stoch: {latest_data_TSLA['rsi_stoch']}\n\n"
+            f"-stoploss: {precioTope_TSLA}\n\n"
         )
 
         # summary_message += "Condiciones para Compra:\n"
@@ -467,18 +563,18 @@ def send_summary_1m(update: Update, context: CallbackContext) -> None:
         error_message = f"Error al generar el resumen: {str(e)}"
         update.message.reply_text(error_message)
 
-def send_summary_5m(update: Update, context: CallbackContext) -> None:
-    global latest_data_5m, price_5m, compra_5m, precioTope_5m
+def send_summary_NVDA(update: Update, context: CallbackContext) -> None:
+    global latest_data_NVDA, price_NVDA, compra_NVDA, precioTope_NVDA
     try:
         summary_message = (
-            f"**price** {price_5m}\n\n"
+            f"**price** {price_NVDA}\n\n"
             f"**BB**\n"
-            f"-upper_band: {latest_data_5m['upper_band']}\n"
-            f"-lower_band: {latest_data_5m['lower_band']}\n\n"
+            f"-upper_band: {latest_data_NVDA['upper_band']}\n"
+            f"-lower_band: {latest_data_NVDA['lower_band']}\n\n"
             #f"-rsi: {latest_data['rsi']}\n"
             f"**RSI** \n"
-            f"-rsi_stoch: {latest_data_5m['rsi_stoch']}\n\n"
-            f"-stoploss: {precioTope_5m}\n\n"
+            f"-rsi_stoch: {latest_data_NVDA['rsi_stoch']}\n\n"
+            f"-stoploss: {precioTope_NVDA}\n\n"
         )
 
         # summary_message += "Condiciones para Compra:\n"
@@ -493,18 +589,18 @@ def send_summary_5m(update: Update, context: CallbackContext) -> None:
         error_message = f"Error al generar el resumen: {str(e)}"
         update.message.reply_text(error_message)
 
-def send_summary_1h(update: Update, context: CallbackContext) -> None:
-    global latest_data_1h, price_1h, compra_1h, precioTope_1h
+def send_summary_GOLD(update: Update, context: CallbackContext) -> None:
+    global latest_data_GOLD, price_GOLD, compra_GOLD, precioTope_GOLD
     try:
         summary_message = (
-            f"**price** {price_1h}\n\n"
+            f"**price** {price_GOLD}\n\n"
             f"**BB**\n"
-            f"-upper_band: {latest_data_1h['upper_band']}\n"
-            f"-lower_band: {latest_data_1h['lower_band']}\n\n"
+            f"-upper_band: {latest_data_GOLD['upper_band']}\n"
+            f"-lower_band: {latest_data_GOLD['lower_band']}\n\n"
             #f"-rsi: {latest_data['rsi']}\n"
             f"**RSI** \n"
-            f"-rsi_stoch: {latest_data_1h['rsi_stoch']}\n\n"
-            f"-stoploss: {precioTope_1h}\n\n"
+            f"-rsi_stoch: {latest_data_GOLD['rsi_stoch']}\n\n"
+            f"-stoploss: {precioTope_GOLD}\n\n"
         )
 
         # summary_message += "Condiciones para Compra:\n"
@@ -521,9 +617,9 @@ def send_summary_1h(update: Update, context: CallbackContext) -> None:
 
 def main() -> None:
     # Crear el archivo si no existe
-    create_csv_if_not_exists(filename_1m)
-    create_csv_if_not_exists(filename_5m)
-    create_csv_if_not_exists(filename_1h)
+    create_csv_if_not_exists(filename_TSLA)
+    create_csv_if_not_exists(filename_NVDA)
+    create_csv_if_not_exists(filename_GOLD)
     while True:
         try:
             # Crear el updater y pasarlo a tu bot token
@@ -536,30 +632,34 @@ def main() -> None:
             job_queue = updater.job_queue
 
             # Agregar un trabajo recurrente que se ejecuta cada minuto para obtener el precio y enviarlo
-            job_queue.run_repeating(get_price_and_send_1m, interval=60, first=0)
-            job_queue.run_repeating(get_price_and_send_5m, interval=60, first=0)
-            job_queue.run_repeating(get_price_and_send_1h, interval=60, first=0)
+            job_queue.run_repeating(get_price_and_send_TSLA, interval=60, first=0)
+            job_queue.run_repeating(get_price_and_send_NVDA, interval=60, first=0)
+            job_queue.run_repeating(get_price_and_send_GOLD, interval=60, first=0)
+
 
             # Agregar un trabajo recurrente que se ejecuta cada 10 minutos para enviar un mensaje "Sigo vivo"
             job_queue.run_repeating(send_alive_message, interval=10800, first=0)
 
             # Añadir manejador de comando para /resumen
-            updater.dispatcher.add_handler(CommandHandler('resumen1', send_summary_1m))
-            updater.dispatcher.add_handler(CommandHandler('resumen5', send_summary_5m))
-            updater.dispatcher.add_handler(CommandHandler('resumen1h', send_summary_1h))
-            updater.dispatcher.add_handler(CommandHandler('ordenes1', send_NumOrd_message_1m))
-            updater.dispatcher.add_handler(CommandHandler('ordenes5', send_NumOrd_message_5m))
-            updater.dispatcher.add_handler(CommandHandler('ordenes1h', send_NumOrd_message_1h))
-            updater.dispatcher.add_handler(CommandHandler('venta1', send_venta_1m))
-            updater.dispatcher.add_handler(CommandHandler('venta5', send_venta_5m))
-            updater.dispatcher.add_handler(CommandHandler('venta1h', send_venta_1h))
-            updater.dispatcher.add_handler(CommandHandler('noOperar1', send_noOperar_1m))
-            updater.dispatcher.add_handler(CommandHandler('noOperar5', send_noOperar_5m))
-            updater.dispatcher.add_handler(CommandHandler('noOperar1h', send_noOperar_1h))
-            updater.dispatcher.add_handler(CommandHandler('operar1', send_Operar_1m))
-            updater.dispatcher.add_handler(CommandHandler('operar5', send_Operar_5m))
-            updater.dispatcher.add_handler(CommandHandler('operar', send_Operar_1h))
+            updater.dispatcher.add_handler(CommandHandler('resumenTSLA', send_summary_TSLA))
+            updater.dispatcher.add_handler(CommandHandler('resumenNVDA', send_summary_NVDA))
+            updater.dispatcher.add_handler(CommandHandler('resumenGOLD', send_summary_GOLD))
+            updater.dispatcher.add_handler(CommandHandler('ordenesTSLA', send_NumOrd_message_TSLA))
+            updater.dispatcher.add_handler(CommandHandler('ordenesNVDA', send_NumOrd_message_NVDA))
+            updater.dispatcher.add_handler(CommandHandler('ordenesGOLD', send_NumOrd_message_GOLD))
+            updater.dispatcher.add_handler(CommandHandler('ventaTSLA', send_venta_TSLA))
+            updater.dispatcher.add_handler(CommandHandler('ventaNVDA', send_venta_NVDA))
+            updater.dispatcher.add_handler(CommandHandler('ventaGOLD', send_venta_GOLD))
+            updater.dispatcher.add_handler(CommandHandler('noOperarTSLA', send_noOperar_TSLA))
+            updater.dispatcher.add_handler(CommandHandler('noOperarNVDA', send_noOperar_NVDA))
+            updater.dispatcher.add_handler(CommandHandler('operarTSLA', send_Operar_TSLA))
+            updater.dispatcher.add_handler(CommandHandler('operarNVDA', send_Operar_NVDA))
+            updater.dispatcher.add_handler(CommandHandler('operarGOLD', send_Operar_GOLD))
+            updater.dispatcher.add_handler(CommandHandler('noOperarGOLD', send_noOperar_GOLD))
+            updater.dispatcher.add_handler(CommandHandler('reset', send_reset))
+
             updater.dispatcher.add_handler(CommandHandler('comandos', send_comandos))
+
 
             # Empezar el bot
             updater.start_polling()

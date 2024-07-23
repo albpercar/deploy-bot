@@ -125,7 +125,7 @@ def generate_summary(filename):
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot TSLA-NVDA")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot TSLA-NVDA v2.0.0")
 
 # Función para obtener el precio actual del oro usando yfinance
 def get_gold_price() -> float:
