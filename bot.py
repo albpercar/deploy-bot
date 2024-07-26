@@ -118,7 +118,7 @@ def generate_summary(filename):
 
 # Función para enviar un mensaje al iniciar el bot
 def send_startup_message(updater: Updater):
-    updater.bot.send_message(chat_id=CHAT_ID, text="Bot 5min v3.0.0")
+    updater.bot.send_message(chat_id=CHAT_ID, text="Bot 5min v4.0.0")
 
 # Función para obtener el precio actual del oro usando yfinance
 def get_TSLA_price() -> float:
@@ -318,7 +318,7 @@ def get_price_and_send_GOLD(context: CallbackContext) -> None:
                 if compra_GOLD:
                     # Estrategia de compra
                     if float(price_GOLD) < float(latest_data_GOLD['lower_band']) and float(latest_data_GOLD['rsi_stoch']) < 20:
-                        signal_message = f"(5 min) Momento de Compra a precio: {price_GOLD} USDT"
+                        signal_message = f"(5 GOLD) Momento de Compra a precio: {price_GOLD} USDT"
                         precioTope_GOLD = price_GOLD - 8
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                         compra_GOLD = False
@@ -329,14 +329,14 @@ def get_price_and_send_GOLD(context: CallbackContext) -> None:
                 else:
                     # Estrategia de venta
                     if precioTope_GOLD > float(price_GOLD):
-                        signal_message = f"(5 min) en precio tope({precioTope_GOLD}) es mayor que el precio({price_GOLD}), Cerramos las operaciones!"
+                        signal_message = f"(5 GOLD) en precio tope({precioTope_GOLD}) es mayor que el precio({price_GOLD}), Cerramos las operaciones!"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                         ventaObligada_GOLD = True
                         precioTope_GOLD = 0
                         #operar_GOLD = False
 
                     if (float(price_GOLD) > float(latest_data_GOLD['upper_band']) and float(latest_data_GOLD['rsi_stoch']) > 80) or ventaObligada_GOLD == True:
-                        signal_message = f"(5 min) Momento de Venta a precio: {price_GOLD} USDT"
+                        signal_message = f"(5 GOLD) Momento de Venta a precio: {price_GOLD} USDT"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                         compra_GOLD = True
                         numVentas_GOLD = numVentas_GOLD + 1
@@ -457,7 +457,7 @@ def send_reset(update: Update, context: CallbackContext) -> None:
     ventaObligada_TSLA = False
     operar_TSLA = True
 
-    precioTope_TSLA = price_TSLA
+    precioTope_TSLA = 0
 
     latest_data_TSLA = {}
 
@@ -472,7 +472,7 @@ def send_reset(update: Update, context: CallbackContext) -> None:
     ventaObligada_NVDA = False
     operar_NVDA = True
 
-    precioTope_NVDA = price_TSLA
+    precioTope_NVDA = 0
 
     latest_data_NVDA = {}
 
@@ -487,7 +487,7 @@ def send_reset(update: Update, context: CallbackContext) -> None:
     ventaObligada_GOLD = False
     operar_GOLD = True
 
-    precioTope_GOLD = price_TSLA
+    precioTope_GOLD = 0
 
     latest_data_GOLD = {}
 
