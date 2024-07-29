@@ -503,7 +503,7 @@ def send_NumOrd_message_TSLA(update: Update, context: CallbackContext) -> None:
         if operar_TSLA:
             estado = "ACTIVADO"
         strOrdenes_TSLA = f"Ordenes realizadas: \n" + generate_summary(filename_TSLA)
-        signal_message = f"(TSLA)\nEstado:{estado}\nCompras: {numCompras_TSLA} \nVentas: {numVentas_TSLA}\n" + strOrdenes_TSLA + f"\n-CARTERA-\nGold:{CarteraGold_TSLA} ({CarteraGold_TSLA * price_TSLA})\nUSDT:{CarteraUSDT_TSLA}"
+        signal_message = f"(BNB-EUR)\nEstado:{estado}\nCompras: {numCompras_TSLA} \nVentas: {numVentas_TSLA}\n" + strOrdenes_TSLA + f"\n-CARTERA-\nGold:{CarteraGold_TSLA} ({CarteraGold_TSLA * price_TSLA})\nUSDT:{CarteraUSDT_TSLA}"
         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
     except:
