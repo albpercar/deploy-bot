@@ -124,7 +124,7 @@ def send_startup_message(updater: Updater):
 def get_TSLA_price() -> float:
     global price_TSLA,price_NVDA,price_GOLD
     try:
-        gold = yf.Ticker("TSLA")
+        gold = yf.Ticker("BNB-EUR")
         data = gold.history(period="1d", interval="1m")
         if not data.empty:
             price = data['Close'].iloc[-1]
@@ -186,7 +186,7 @@ def calculate_indicators(data):
     return df
 
 def  get_last_50_prices_TSLA():
-    gold = yf.Ticker("TSLA")
+    gold = yf.Ticker("BNB-EUR")
     data = gold.history(period="3d", interval="5m")
     prices = data['Close'].tolist()[-50:]  # Tomar los últimos 50 datos
     return prices
@@ -223,7 +223,7 @@ def get_price_and_send_TSLA(context: CallbackContext) -> None:
                 if compra_TSLA:
                     # Estrategia de compra
                     if float(price_TSLA) < float(latest_data_TSLA['lower_band']) and float(latest_data_TSLA['rsi_stoch']) < 20:
-                        signal_message = f"(5 min TSLA) Momento de Compra a precio: {price_TSLA} USDT"
+                        signal_message = f"(5 min BNB-EUR) Momento de Compra a precio: {price_TSLA} EUR"
                         precioTope_TSLA = price_TSLA - 7
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                         compra_TSLA = False
@@ -234,14 +234,14 @@ def get_price_and_send_TSLA(context: CallbackContext) -> None:
                 else:
                     #Estrategia de venta
                     if precioTope_TSLA > float(price_TSLA):
-                        signal_message = f"(5 min TSLA) en precio tope({precioTope_TSLA}) es mayor que el precio({price_TSLA}), Cerramos las operaciones!"
+                        signal_message = f"(5 min BNB-EUR) en precio tope({precioTope_TSLA}) es mayor que el precio({price_TSLA}), Cerramos las operaciones!"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                         ventaObligada_TSLA = True
                         precioTope_TSLA = 0
                         #operar_TSLA = False
 
                     if (float(price_TSLA) > float(latest_data_TSLA['upper_band']) and float(latest_data_TSLA['rsi_stoch']) > 80) or ventaObligada_TSLA == True:
-                        signal_message = f"(5 min TSLA) Momento de Venta a precio: {price_TSLA} USDT"
+                        signal_message = f"(5 min BNB-EUR) Momento de Venta a precio: {price_TSLA} EUR"
                         context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
                         compra_TSLA = True
                         numVentas_TSLA = numVentas_TSLA + 1
@@ -363,14 +363,14 @@ def comprobar_hora():
 # Función que envía un mensaje cada 10 minutos para indicar que el bot sigue vivo
 def send_alive_message(context: CallbackContext) -> None:
     global price
-    signal_message = f"Mensaje para recordar que Jimenez es gay"
+    signal_message = f"Pablito voz de pito"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
 
 def send_noOperar_TSLA(update: Update, context: CallbackContext) -> None:
     global operar_TSLA
     operar_TSLA = False
-    signal_message = f"Recibido, NO se opera (TSLA)"
+    signal_message = f"Recibido, NO se opera (BNB-EUR)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
 def send_noOperar_NVDA(update: Update, context: CallbackContext) -> None:
@@ -387,17 +387,17 @@ def send_noOperar_GOLD(update: Update, context: CallbackContext) -> None:
 
 def send_comandos(update: Update, context: CallbackContext) -> None:
     summary_message = (
-        f"/resumenTSLA\n"
+        f"/resumenBNB\n"
         f"/resumenNVDA\n"
         f"/resumenGOLD\n"
-        f"/ordenesTSLA\n"
+        f"/ordenesBNB\n"
         f"/ordenesNVDA\n"
         f"/ordenesGOLD\n"
-        f"/ventaTSLA\n"
+        f"/ventaBNB\n"
         f"/ventaNVDA\n"
         f"/ventaGOLD\n"
-        f"/noOperarTSLA\n"
-        f"/operarTSLA\n"
+        f"/noOperarBNB\n"
+        f"/operarBNB\n"
         f"/noOperarNVDA\n"
         f"/operarNVDA\n"
         f"/noOperarGOLD\n"
@@ -409,13 +409,13 @@ def send_comandos(update: Update, context: CallbackContext) -> None:
 def send_Operar_TSLA(update: Update, context: CallbackContext) -> None:
     global operar_TSLA
     operar_TSLA = True
-    signal_message = f"Recibido, vamos a operar! (TSLA)"
+    signal_message = f"Recibido, vamos a operar! (BNB-EUR)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
 def send_venta_TSLA(update: Update, context: CallbackContext) -> None:
     global ventaObligada_TSLA
     ventaObligada_TSLA = True
-    signal_message = f"venta obligada recibida! (TSLA)"
+    signal_message = f"venta obligada recibida! (BNB-EUR)"
     context.bot.send_message(chat_id=CHAT_ID, text=signal_message)
 
 def send_Operar_GOLD(update: Update, context: CallbackContext) -> None:
@@ -638,21 +638,21 @@ def main() -> None:
 
 
             # Agregar un trabajo recurrente que se ejecuta cada 10 minutos para enviar un mensaje "Sigo vivo"
-            job_queue.run_repeating(send_alive_message, interval=10800, first=0)
+            job_queue.run_repeating(send_alive_message, interval=21600, first=0)
 
             # Añadir manejador de comando para /resumen
-            updater.dispatcher.add_handler(CommandHandler('resumenTSLA', send_summary_TSLA))
+            updater.dispatcher.add_handler(CommandHandler('resumenBNB', send_summary_TSLA))
             updater.dispatcher.add_handler(CommandHandler('resumenNVDA', send_summary_NVDA))
             updater.dispatcher.add_handler(CommandHandler('resumenGOLD', send_summary_GOLD))
-            updater.dispatcher.add_handler(CommandHandler('ordenesTSLA', send_NumOrd_message_TSLA))
+            updater.dispatcher.add_handler(CommandHandler('ordenesBNB', send_NumOrd_message_TSLA))
             updater.dispatcher.add_handler(CommandHandler('ordenesNVDA', send_NumOrd_message_NVDA))
             updater.dispatcher.add_handler(CommandHandler('ordenesGOLD', send_NumOrd_message_GOLD))
-            updater.dispatcher.add_handler(CommandHandler('ventaTSLA', send_venta_TSLA))
+            updater.dispatcher.add_handler(CommandHandler('ventaBNB', send_venta_TSLA))
             updater.dispatcher.add_handler(CommandHandler('ventaNVDA', send_venta_NVDA))
             updater.dispatcher.add_handler(CommandHandler('ventaGOLD', send_venta_GOLD))
-            updater.dispatcher.add_handler(CommandHandler('noOperarTSLA', send_noOperar_TSLA))
+            updater.dispatcher.add_handler(CommandHandler('noOperarBNB', send_noOperar_TSLA))
             updater.dispatcher.add_handler(CommandHandler('noOperarNVDA', send_noOperar_NVDA))
-            updater.dispatcher.add_handler(CommandHandler('operarTSLA', send_Operar_TSLA))
+            updater.dispatcher.add_handler(CommandHandler('operarBNB', send_Operar_TSLA))
             updater.dispatcher.add_handler(CommandHandler('operarNVDA', send_Operar_NVDA))
             updater.dispatcher.add_handler(CommandHandler('operarGOLD', send_Operar_GOLD))
             updater.dispatcher.add_handler(CommandHandler('noOperarGOLD', send_noOperar_GOLD))
